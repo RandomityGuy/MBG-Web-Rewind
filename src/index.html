@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>Marble Blast Gold</title>
+		<meta name="description" content="Race your marble to the finish in 100 diverse levels. A full web port of Marble Blast Gold by GarageGames.">
+		<meta name="keywords" content="marble, blast, gold, marbleblast, marbleblastgold, garagegames, torque">
+		<meta name="author" content="Vanilagy">
+
+		<link rel="shortcut icon" href="./assets/img/marble-blast-gold-logo.png">
+		<link rel="stylesheet" href="./css/main.css">
+		<link rel="stylesheet" href="./css/home.css">
+		<link rel="stylesheet" href="./css/level_select.css">
+		<link rel="stylesheet" href="./css/loading.css">
+		<link rel="stylesheet" href="./css/help.css">
+		<link rel="stylesheet" href="./css/options.css">
+		<link rel="stylesheet" href="./css/game.css">
+	</head>
+	<body>
+		<canvas id="main-canvas"></canvas>
+
+		<div id="loading-message">Loading...</div>
+		<div id="start-game-dialog" style="display: none;">
+			<div style="font-size: 24px;">Press F11 to start in fullscreen mode</div>
+			<div style="font-size: 16px; opacity: 0.5;">Alternatively, click anywhere to continue in windowed mode</div>
+		</div>
+
+		<div id="game-ui" class="hidden">
+			<img src="./assets/ui/game/powerup.png" id="powerup-border">
+			<div style="font-family: DomCasualRegular;" id="help-text"></div>
+			<div style="font-family: DomCasualRegular;" id="alert-text"></div>
+			<img id="center-text" src=""></img>
+			<canvas id="clock" height="50" width="300"></canvas>
+			<div id="gem-count">
+				<img src="./assets/ui/game/numbers/0.png">
+				<img src="./assets/ui/game/numbers/0.png">
+				<img src="./assets/ui/game/numbers/slash.png">
+				<img src="./assets/ui/game/numbers/0.png">
+				<img src="./assets/ui/game/numbers/0.png">
+			</div>
+			<div id="pause-screen" class="hidden">
+				<img src="./assets/ui/common/dialog.png">
+				<p>Exit from this Level?</p>
+				<img src="./assets/ui/common/yes_n.png" id="pause-yes">
+				<img src="./assets/ui/common/no_n.png" id="pause-no">
+				<img src="./assets/ui/common/restart_n.png" id="pause-restart">
+			</div>
+			<div id="finish-screen" class="hidden">
+				<img src="./assets/ui/play/playgui.png">
+				<div id="finish-screen-time">
+					<p>Final Time:</p>
+					<p id="finish-screen-time-time">00.00.92</p>
+				</div>
+				<div style="clear: both;"></div>
+				<p id="finish-message"></p>
+				<div class="finish-row">
+					<p>Qualify Time:</p>
+					<p id="finish-qualify-time"></p>
+				</div>
+				<div class="finish-row">
+					<p>Gold Time:</p>
+					<p id="finish-gold-time" style="color: #fff700; text-shadow: 1px 1px 0px black;"></p>
+				</div>
+				<div class="finish-row">
+					<p>Elapsed Time:</p>
+					<p id="finish-elapsed-time"></p>
+				</div>
+				<div class="finish-row">
+					<p>Bonus Time:</p>
+					<p id="finish-bonus-time"></p>
+				</div>
+				<div style="width: 1px; height: 15px;"></div>
+				<div class="finish-row" style="margin-top: 30px;">
+					<p>Best Times:</p>
+					<p></p>
+				</div>
+				<div class="finish-row" id="best-time-1">
+					<p></p>
+					<p></p>
+				</div>
+				<div class="finish-row" id="best-time-2">
+					<p></p>
+					<p></p>
+				</div>
+				<div class="finish-row" id="best-time-3">
+					<p></p>
+					<p></p>
+				</div>
+				<img src="./assets/ui/endgame/replay_n.png" id="finish-replay">
+				<img src="./assets/ui/endgame/continue_n.png" id="finish-continue">
+			</div>
+			<div id="name-entry-screen" class="hidden">
+				<img src="./assets/ui/common/dialog.png">
+				<p>Congratulations!</p>
+				<p></p>
+				<img src="./assets/ui/common/window.png" id="name-entry-input-background">
+				<input type="text" id="name-entry-input" maxlength="16" autocomplete="off" autocorrect="off" spellcheck="false">
+				<img src="./assets/ui/common/ok_n.png" id="name-entry-confirm">
+			</div>
+		</div>
+
+		<div id="menu" class="hidden">
+			<img src="./assets/ui/background.jpg" id="background-image">
+
+			<div id="home-screen">
+				<img src="./assets/ui/home/homegui.png">
+				<img src="./assets/ui/home/play_n.png" id="home-play">
+				<img src="./assets/ui/home/help_n.png" id="home-help">
+				<img src="./assets/ui/home/options_n.png" id="home-options">
+				<img src="./assets/ui/home/exit_n.png" id="home-exit">
+			</div>
+
+			<div id="hidden-level-unlocker" class="hidden"></div>
+			<div id="level-select" class="hidden">
+				<img src="./assets/ui/play/playgui.png" style="pointer-events: none; display: block;">
+				<img src="./assets/ui/play/tab_begin.png" id="tab-beginner">
+				<img src="./assets/ui/play/tab_inter.png" id="tab-intermediate">
+				<img src="./assets/ui/play/tab_adv.png" id="tab-advanced">
+				<img src="./assets/ui/play/cust_tab.png" id="tab-custom">
+				<div id="level-select-text-window">
+					<img src="./assets/ui/play/text_window.png" style="position: absolute; top: 0; left: 0; z-index: -1;">
+					<div id="level-select-text-window-scrollable">
+						<p id="level-title"></p>
+						<p id="level-description"></p>
+						<p id="level-qualify-time"></p>
+						<p id="best-times-heading">Best Times:</p>
+						<div class="level-select-best-time" id="level-select-best-time-1">
+							<div></div>
+							<img src="./assets/ui/play/goldscore.png">
+							<div></div>
+						</div>
+						<div class="level-select-best-time" id="level-select-best-time-2">
+							<div></div>
+							<img src="./assets/ui/play/goldscore.png">
+							<div></div>
+						</div>
+						<div class="level-select-best-time" id="level-select-best-time-3">
+							<div></div>
+							<img src="./assets/ui/play/goldscore.png">
+							<div></div>
+						</div>
+						<p id="online-leaderboard-heading">Online Leaderboard:</p>
+						<div id="leaderboard-scores"></div>
+					</div>
+				</div>
+				<img src="./assets/ui/play/back_n.png" id="level-select-home-button">
+				<div id="level-select-level-window">
+					<img src="./assets/ui/play/level_window.png">
+					<img src="./assets/data/missions/advanced/3foldmaze.jpg" id="level-image">
+					<div id="not-qualified-overlay" style="display: none;">Not Qualified!</div>
+					<p id="level-number"></p>
+				</div>
+				<img src="./assets/ui/play/prev_n.png" id="level-select-prev">
+				<img src="./assets/ui/play/play_n.png" id="level-select-play">
+				<img src="./assets/ui/play/next_n.png" id="level-select-next">
+			</div>
+
+			<div id="loading" class="hidden">
+				<div id="loading-progress"></div>
+				<img src="./assets/ui/loading/loadinggui.png">
+				<img src="./assets/ui/loading/cancel_n.png" id="loading-cancel">
+				<p id="loading-level-name"></p>
+			</div>
+
+			<div id="help" class="hidden">
+				<img src="./assets/ui/play/playgui.png">
+				<div>
+					<div class="help-page">
+						<div class="help-heading">Overview</div>
+						<div class="help-paragraph">Roll your marble through a rich cartoon landscape of moving<br>platforms and dangerous hazards. Along the way find<br>power ups to increase your speed, jumping ability or flight<br>power, and use them to collect the hidden gems and race to<br>the finish for the fastest time.</div>
+					</div>
+					<div class="help-page">
+						<div class="help-heading">Basic Controls</div>
+						<div class="help-paragraph">The marble can be moved forward, back, left and right by pressing <span data-button="up"></span>, <span data-button="left"></span>, <span data-button="down"></span> and <span data-button="right"></span>, respectively. Pressing <span data-button="jump"></span> causes the marble to jump, and pressing <span data-button="use"></span> uses whatever powerup you currently have available. All movement is relative to view direction.</div>
+					</div>
+					<div class="help-page">
+						<div class="help-heading">Camera Controls</div>
+						<div class="help-paragraph">The camera direction can be changed by moving the mouse or by pressing <span data-button="cameraUp"></span>, <span data-button="cameraDown"></span>, <span data-button="cameraLeft"></span> or <span data-button="cameraRight"></span>. &nbsp;In order to look up and down freely with the mouse, hold down <span data-button="freeLook"></span>. You can turn free look on always from the Mouse pane of the Control Options screen.</div>
+					</div>
+					<div class="help-page">
+						<div class="help-heading">Goals</div>
+						<div class="help-canvas-row">
+							<canvas width="80" height="80" data-scene="startPad"></canvas>
+							<div>Start Pad - this is where you start the level.</div>
+						</div>
+						<div class="help-canvas-row">
+							<canvas width="80" height="80" data-scene="endPad"></canvas>
+							<div>End Pad - roll your marble here to end the level.</div>
+						</div>
+						<div class="help-canvas-row">
+							<canvas width="80" height="80" data-scene="gems" style="margin-top: 18px;"></canvas>
+							<div>Gems - if a level has gems, you must pick them all<br>up before you can exit.</div>
+						</div>
+					</div>
+					<div class="help-page">
+						<div class="help-heading">Bonus Items (1/2)</div>
+						<div class="help-canvas-row" style="margin-top: -20px;">
+							<canvas width="80" height="80" data-scene="superSpeed"></canvas>
+							<div>Super Speed PowerUp - gives you a burst of speed.</div>
+						</div>
+						<div class="help-canvas-row">
+							<canvas width="80" height="80" data-scene="superJump"></canvas>
+							<div>Super Jump PowerUp - gives you a big jump up.</div>
+						</div>
+						<div class="help-canvas-row">
+							<canvas width="80" height="80" data-scene="shockAbsorber"></canvas>
+							<div>Shock Absorber PowerUp - absorbs bounce impacts.</div>
+						</div>
+						<div class="help-canvas-row">
+							<canvas width="80" height="80" data-scene="superBounce"></canvas>
+							<div>Super Bounce PowerUp - makes you bounce higher.</div>
+						</div>
+					</div>
+					<div class="help-page">
+						<div class="help-heading">Bonus Items (2/2)</div>
+						<div class="help-canvas-row">
+							<canvas width="80" height="80" data-scene="gyrocopter"></canvas>
+							<div>Gyrocopter PowerUp - slows your fall in the air.</div>
+						</div>
+						<div class="help-canvas-row">
+							<canvas width="80" height="80" data-scene="timeTravel"></canvas>
+							<div>Time Travel - takes some time off the clock.</div>
+						</div>
+						<div class="help-canvas-row">
+							<canvas width="80" height="80" data-scene="gravityModifier" style="margin-top: 24px;"></canvas>
+							<div>Gravity Modifier - Changes the direction of "down"<br>- the new down is in the direction of the arrow.</div>
+						</div>
+					</div>
+					<div class="help-page">
+						<div class="help-heading">Hazards (1/2)</div>
+						<div class="help-canvas-row">
+							<canvas width="80" height="80" data-scene="ductFan"></canvas>
+							<div>Duct Fan - be careful this doesn't blow you away!</div>
+						</div>
+						<div class="help-canvas-row">
+							<canvas width="80" height="80" data-scene="tornado"></canvas>
+							<div>Tornado - it'll pull you in and spit you out.</div>
+						</div>
+						<div class="help-canvas-row">
+							<canvas width="80" height="80" data-scene="trapDoor" style="margin-top: 18px;"></canvas>
+							<div>Trap Door - keep moving when you're rolling over<br>one of these.</div>
+						</div>
+					</div>
+					<div class="help-page">
+						<div class="help-heading">Hazards (2/2)</div>
+						<div class="help-canvas-row">
+							<canvas width="80" height="80" data-scene="bumper"></canvas>
+							<div>Bumper - this'll bounce you if you touch it.</div>
+						</div>
+						<div class="help-canvas-row">
+							<canvas width="80" height="80" data-scene="mine"></canvas>
+							<div>Land Mine - Warning! &nbsp;Explodes on contact!</div>
+						</div>
+						<div class="help-canvas-row">
+							<canvas width="80" height="80" data-scene="oilslick" style="margin-top: 17px;"></canvas>
+							<div>Oil Slick - you won't have much traction on these<br>surfaces.</div>
+						</div>
+					</div>
+					<div class="help-page">
+						<div class="help-heading">About GarageGames</div>
+						<div class="help-paragraph" style="white-space: pre;">GarageGames is a unique Internet publishing label for<br>independent games and gamemakers. &nbsp;Our mission is to<br>provide the independent developer with tools, knowledge,<br>co-conspirators - whatever is needed to unleash the creative<br>spirit and get great innovative independent games to<br>market.</div>
+					</div>
+					<div class="help-page">
+						<div class="help-heading">About the Torque</div>
+						<div class="help-paragraph" style="white-space: pre;">The Torque Game Engine (TGE) is a full featured AAA<br>title engine with the latest in scripting, geometry, particle<br>effects, animation and texturing, as well as award winning<br>multi-player networking code. &nbsp;For $100 per programmer,<br>you get the source to the engine!</div>
+					</div>
+					<div class="help-page">
+						<div class="help-heading">The Marble Blast Team</div>
+						<div class="help-left-right" style="margin-top: 30px;">
+							<div>Alex Swanson</div>
+							<div>Mark Frohnmayer</div>
+						</div>
+						<div class="help-left-right">
+							<div>Jeff Tunnell</div>
+							<div>Brian Hahn</div>
+						</div>
+						<div class="help-left-right">
+							<div>Liam Ryan</div>
+							<div>Tim Gift</div>
+						</div>
+						<div class="help-left-right">
+							<div>Rick Overman</div>
+							<div>Kevin Ryan</div>
+						</div>
+						<div class="help-left-right">
+							<div>Timothy Clarke</div>
+							<div>Jay Moore</div>
+						</div>
+						<div class="help-left-right">
+							<div>Pat Wilson</div>
+							<div>John Quigley</div>
+						</div>
+					</div>
+					<div class="help-page">
+						<div class="help-heading">Special Thanks</div>
+						<div class="help-paragraph" style="white-space: pre;">We'd like to thank Nullsoft, for the SuperPiMP Install<br>System, and Markus F.X.J. Oberhumer, Laszlo Molnar and<br>the rest of the UPX team for the UPX executable packer.<br>Thanks also to Kurtis Seebaldt for his work on integrating<br>Ogg/Vorbis streaming into the Torque engine, and to the<br>Ogg/Vorbis team.</div>
+					</div>
+					<div class="help-page">
+						<div class="help-heading">Web Port</div>
+						<div class="help-paragraph">This web port of Marble Blast Gold was done by Vanilagy - all the code is free to access on <a href="https://github.com/Vanilagy/MarbleBlast" target="_blank">GitHub</a>. Full rights go to GarageGames and other creators of this game. Special thanks to the maintainers of three.js and OimoPhysics for making this project possible!</div>
+					</div>
+				</div>
+				<img src="./assets/ui/play/prev_n.png" id="help-prev">
+				<img src="./assets/ui/play/back_n.png" id="help-back">
+				<img src="./assets/ui/play/next_n.png" id="help-next">
+			</div>
+			<div id="options" class="hidden">
+				<img src="./assets/ui/options/options_base.png" style="pointer-events: none; display: block;">
+				<img src="./assets/ui/options/graf_tab.png" id="tab-graphics">
+				<img src="./assets/ui/options/aud_tab.png" id="tab-audio">
+				<img src="./assets/ui/options/cntr_tab.png" id="tab-controls">
+				<img src="./assets/ui/options/mainm_n.png" id="options-home">
+
+				<div id="options-graphics">
+					<img src="./assets/ui/options/graf_txt.png" id="graphics-text">
+					<img src="./assets/ui/options/graf640_n.png" id="graphics-640">
+					<img src="./assets/ui/options/graf800_n.png" id="graphics-800">
+					<img src="./assets/ui/options/graf1024_n.png" id="graphics-1024">
+					<img src="./assets/ui/options/grafopgl_n.png" id="graphics-opengl">
+					<img src="./assets/ui/options/grafdir3d_n.png" id="graphics-direct3d">
+					<img src="./assets/ui/options/grafwindo_n.png" id="graphics-windowed">
+					<img src="./assets/ui/options/grafful_n.png" id="graphics-full">
+					<img src="./assets/ui/options/graf16bt_n.png" id="graphics-depth16">
+					<img src="./assets/ui/options/graf32bt_n.png" id="graphics-depth32">
+					<img src="./assets/ui/options/graf_chkbx_n.png" id="graphics-shadows">
+					<img src="./assets/ui/options/grafapply_n.png" id="graphics-apply">
+				</div>
+
+				<div id="options-audio">
+					<img src="./assets/ui/options/aud_mus_slide.png" id="audio-music-track">
+					<img src="./assets/ui/options/aud_mus_knb.png" id="audio-music-knob">
+					<img src="./assets/ui/options/aud_snd_slide.png" id="audio-sound-track">
+					<img src="./assets/ui/options/aud_snd_knb.png" id="audio-sound-knob">
+					<img src="./assets/ui/options/aud_txt_wndo.png" id="audio-text-window">
+					<div id="audio-text">
+						Vendor: Creative Labs Inc.<br>
+						Version: OpenAL 1.0<br>
+						Renderer: Software<br>
+						Extensions: EAX 2.0, EAX 3.0, EAX Unified, and EAX-AC3
+					</div>
+				</div>
+
+				<div id="options-controls">
+					<img src="./assets/ui/options/cntrl_marb_bse.png" id="controls-background">
+					<div id="tab-marble"></div>
+					<div id="tab-camera"></div>
+					<div id="tab-mouse"></div>
+
+					<div id="rebind-dialog" class="hidden">
+						<img src="./assets/ui/common/dialog.png">
+						<p></p>
+					</div>
+					<div id="rebind-confirm" class="hidden">
+						<img src="./assets/ui/common/dialog.png">
+						<p></p>
+						<img src="./assets/ui/common/yes_n.png" id="rebind-confirm-yes">
+						<img src="./assets/ui/common/no_n.png" id="rebind-confirm-no">
+					</div>
+
+					<div id="controls-marble">
+						<img src="./assets/ui/options/cntr_mrb_lft_n.png" id="button-marble-left">
+						<img src="./assets/ui/options/cntr_mrb_rt_n.png" id="button-marble-right">
+						<img src="./assets/ui/options/cntr_mrb_fw_n.png" id="button-marble-up">
+						<img src="./assets/ui/options/cntr_mrb_bak_n.png" id="button-marble-down">
+						<img src="./assets/ui/options/cntr_mrb_pwr_n.png" id="button-marble-use">
+						<img src="./assets/ui/options/cntr_mrb_jmp_n.png" id="button-marble-jump">
+						<p id="button-marble-left-content"></p>
+						<p id="button-marble-right-content"></p>
+						<p id="button-marble-up-content"></p>
+						<p id="button-marble-down-content"></p>
+						<p id="button-marble-use-content"></p>
+						<p id="button-marble-jump-content"></p>
+					</div>
+					<div id="controls-camera">
+						<img src="./assets/ui/options/cntr_cam_lft_n.png" id="button-camera-left">
+						<img src="./assets/ui/options/cntr_cam_rt_n.png" id="button-camera-right">
+						<img src="./assets/ui/options/cntr_cam_up_n.png" id="button-camera-up">
+						<img src="./assets/ui/options/cntr_cam_dwn_n.png" id="button-camera-down">
+						<p id="button-camera-left-content"></p>
+						<p id="button-camera-right-content"></p>
+						<p id="button-camera-up-content"></p>
+						<p id="button-camera-down-content"></p>
+					</div>
+					<div id="controls-mouse">
+						<img src="./assets/ui/options/cntrl_mous_knb.png" id="sensitivity-knob">
+						<img src="./assets/ui/options/cntrl_mous_invrt_n.png" id="invert-y">
+						<img src="./assets/ui/options/cntrl_mous_freel_n.png" id="always-free-look">
+						<img src="./assets/ui/options/cntrl_mous_bttn_n.png" id="free-look-key">
+						<p id="free-look-key-content"></p>
+					</div>
+				</div>
+			</div>
+		</div>
+		
+		<div id="image-cache" style="display: none;"></div>
+		<!-- Font load -->
+		<div style="font-family: DomCasualRegular; opacity: 0; pointer-events: none;">ABC</div>
+		<div style="font-family: Expo; opacity: 0; pointer-events: none;">ABC</div>
+
+		<script src="./lib/three.js" defer></script>
+		<script src="./lib/oimo.js" defer></script>
+		<div></div>
+		<script src="./js/bundle.js" defer></script>
+	</body>
+</html>
