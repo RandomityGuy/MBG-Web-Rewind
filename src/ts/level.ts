@@ -483,15 +483,15 @@ export class Level extends Scheduler {
 
 		this.clearSchedule();
 		this.schedule(500, () => {
-			setCenterText('ready');
+			// setCenterText('ready');
 			AudioManager.play('ready.wav');
 		});
 		this.schedule(2000, () => {
-			setCenterText('set');
+			// setCenterText('set');
 			AudioManager.play('set.wav');
 		});
 		this.schedule(GO_TIME, () => {
-			setCenterText('go');
+			// setCenterText('go');
 			AudioManager.play('go.wav');
 		});
 		this.schedule(5500, () => {
@@ -798,6 +798,8 @@ export class Level extends Scheduler {
 			this.updateUI();
 		}
 
+		this.updateGameState();
+
 		AudioManager.updatePositionalAudio(this.timeState, camera.position, this.yaw);
 		this.pitch = Math.max(-Math.PI/2 + Math.PI/4, Math.min(Math.PI/2 - 0.0001, this.pitch)); // The player can't look straight up
 		if (tickDone) this.calculatePreemptiveTransforms();
@@ -935,6 +937,7 @@ export class Level extends Scheduler {
 	updateUI()
 	{
 		displayGemCount(this.gemCount, this.totalGems);
+		this.updateGameState();
 		// this.setPowerUpPreview(null);
 		// this.setPowerUpPreview(this.heldPowerUp);
 	}

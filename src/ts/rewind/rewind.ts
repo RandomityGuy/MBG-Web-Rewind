@@ -106,7 +106,6 @@ export class Rewind {
             {
                 let state = missionstate.explosivestates[0];
                 missionstate.explosivestates.splice(0,1);
-                if (this.rewindManager.level.timeState.timeSinceLoad < state) state = -Infinity;
                 (obj as LandMine).disappearTime = state;
             }
             if (obj instanceof TrapDoor)
@@ -138,6 +137,7 @@ export class Rewind {
         f.elapsedTime = level.timeState.currentAttemptTime;
         f.ms = level.timeState.gameplayClock;
         f.position = Util.vecOimoToThree(marble.body.getPosition());
+        f.rotation = marble.body.getOrientation();
         f.velocity = Util.vecOimoToThree(marble.body.getLinearVelocity());
         f.spin = Util.vecOimoToThree(marble.body.getAngularVelocity());
         f.powerup = level.heldPowerUp;
@@ -183,7 +183,7 @@ export class Rewind {
 
                 if (framedata == null)
                 {
-                    framedata = this.previousFrame;
+                    framedata = this.previousFrame.clone();
                 }
             }
             else
@@ -196,24 +196,24 @@ export class Rewind {
                 {
                     framedata = f;
                 }
-                this.previousFrame = framedata;
+                this.previousFrame = framedata.clone();
             }
             if (framedata != null) // Need to make this tower of checks since god knows what could possibly happen
             {
-                this.previousFrame = framedata;
+                this.previousFrame = framedata.clone();
             }
             else
             {
-                framedata = this.previousFrame;
+                framedata = this.previousFrame.clone();
             }
         }
         if (framedata != null)
         {
-            this.previousFrame = framedata;
+            this.previousFrame = framedata.clone();
         }
         else
         {
-            framedata = this.previousFrame;
+            framedata = this.previousFrame.clone();
         }
 
         level.currentTimeTravelBonus = framedata.timebonus;
@@ -222,6 +222,7 @@ export class Rewind {
         level.timeState.timeSinceLoad = framedata.timeSinceLoad;
 
         marble.body.setPosition(Util.vecThreeToOimo(framedata.position));
+        marble.body.setOrientation(framedata.rotation);
         marble.body.setLinearVelocity(Util.vecThreeToOimo(framedata.velocity));
         marble.body.setAngularVelocity(Util.vecThreeToOimo(framedata.spin));
 

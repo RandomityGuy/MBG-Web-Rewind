@@ -9,6 +9,7 @@ export class Frame
     ms: number
     deltaMs: number
     position: THREE.Vector3
+    rotation: OIMO.Quat
     velocity: THREE.Vector3
     spin: THREE.Vector3
     powerup: PowerUp
@@ -33,6 +34,7 @@ export class Frame
         retf.ms = this.ms;
         retf.deltaMs = this.deltaMs;
         retf.position = this.position.clone();
+        retf.rotation = this.rotation.clone();
         retf.velocity = this.velocity.clone();
         retf.spin = this.spin.clone();
         retf.powerup = this.powerup;

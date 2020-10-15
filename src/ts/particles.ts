@@ -79,6 +79,7 @@ export class ParticleManager {
 		let emitter = new ParticleEmitter(options, this, getPos);
 		emitter.currPos = getPos?.() ?? initialPos.clone();
 		emitter.currPosTime = this.getTime();
+		emitter.creationTime = this.getTime();
 		emitter.spawn(this.getTime());
 
 		this.emitters.push(emitter);
@@ -95,6 +96,12 @@ export class ParticleManager {
 		for (let emitter of this.emitters) {
 			if (emitter.getPos) emitter.setPos(emitter.getPos(), time);
 			emitter.tick(time);
+
+			// Remove the artifact that was created in a different future cause we rewinded and now we shifted timelines
+			if (emitter.creationTime > time)
+			{
+				this.removeEmitter(emitter);
+			}
 		}
 	}
 
@@ -116,6 +123,7 @@ export class ParticleEmitter {
 	lastPosTime: number;
 	currPos: THREE.Vector3;
 	currPosTime: number;
+	creationTime: number; // Rewind needs this to remove artifacts from the future
 	vel = new THREE.Vector3();
 	getPos: () => THREE.Vector3;
 
@@ -208,6 +216,12 @@ class Particle {
 	render(time: number) {
 		let elapsed = time - this.spawnTime;
 		let completion = Util.clamp(elapsed / this.lifetime, 0, 1);
+
+		if (elapsed < 0) // Again, rewind needs this
+		{
+			this.manager.removeParticle(this);
+			return;
+		}
 
 		if (completion === 1) {
 			// The particle can die
