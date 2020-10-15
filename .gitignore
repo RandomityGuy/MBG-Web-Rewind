@@ -4,3 +4,5 @@ dist
 todo.txt
 .rpt2_cache
 src/php/leaderboard.json
+**/screenshots
+**/.vscode

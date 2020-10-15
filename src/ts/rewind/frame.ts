@@ -8,9 +8,9 @@ export class Frame
 {
     ms: number
     deltaMs: number
-    position: Vector3
-    velocity: Vector3
-    spin: Vector3
+    position: THREE.Vector3
+    velocity: THREE.Vector3
+    spin: THREE.Vector3
     powerup: PowerUp
     timebonus: number
     timeSinceLoad: number
@@ -22,7 +22,7 @@ export class Frame
     lmstates: number[]
     // nextstatetime: number // Damnnn
     activepowstates: number[]
-    gravityDir: Vector3
+    gravityDir: THREE.Vector3
     trapdoordirs: number[]
     trapdoorcontacttime: number[]
     trapdoorcompletion: number[]
