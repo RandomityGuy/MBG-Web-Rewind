@@ -35,7 +35,7 @@ import { Trigger } from "./triggers/trigger";
 import { InBoundsTrigger } from "./triggers/in_bounds_trigger";
 import { HelpTrigger } from "./triggers/help_trigger";
 import { OutOfBoundsTrigger } from "./triggers/out_of_bounds_trigger";
-import { displayTime, displayAlert, displayGemCount, gemCountElement, numberSources, setCenterText, displayHelp, showPauseScreen, hidePauseScreen, finishScreenDiv, showFinishScreen } from "./ui/game";
+import { displayTime, displayAlert, displayGemCount, gemCountElement, numberSources, setCenterText, displayHelp, showPauseScreen, hidePauseScreen, finishScreenDiv, showFinishScreen, stopAndExit } from "./ui/game";
 import { ResourceManager } from "./resources";
 import { AudioManager, AudioSource } from "./audio";
 import { PhysicsHelper } from "./physics";
@@ -43,6 +43,8 @@ import { ParticleManager } from "./particles";
 import { StorageManager } from "./storage";
 import { Rewind } from "./rewind/rewind";
 import { RewindManager } from "./rewind/rewind_manager";
+import { Replay } from "./replay";
+import { getCurrentLevelArray } from "./ui/level_select";
 
 /** How often the physics will be updated, per second. */
 export const PHYSICS_TICK_RATE = 120;
@@ -91,6 +93,7 @@ export class Level extends Scheduler {
 	particles: ParticleManager;
 	marble: Marble;
 	interiors: Interior[] = [];
+	triggers: Trigger[] = [];
 
 	shapes: Shape[] = [];
 	/** Holds data shared between multiple shapes of the same .dts path. */
@@ -124,6 +127,8 @@ export class Level extends Scheduler {
 	oldOrientationQuat = new THREE.Quaternion();
 	/** The new target camera orientation quat  */
 	newOrientationQuat = new THREE.Quaternion();
+	/** See usage. */
+	previousMouseMovementDistance = 0;
 
 	currentTimeTravelBonus = 0;
 	heldPowerUp: PowerUp = null;
@@ -136,6 +141,7 @@ export class Level extends Scheduler {
 	
 	timeTravelSound: AudioSource;
 	music: AudioSource;
+	replay: Replay;
 
 	// Rewind 
 	rewinding = false;
@@ -174,6 +180,7 @@ export class Level extends Scheduler {
 
 		this.particles = new ParticleManager(this);
 		await this.particles.init();
+		this.replay = new Replay(this);
 
 		this.rewind = new Rewind();
 		this.rewind.rewindManager = new RewindManager();
@@ -311,11 +318,8 @@ export class Level extends Scheduler {
 	}
 
 	async initSounds() {
-		let missionInfo = this.mission.elements.find((element) => element._type === MissionElementType.ScriptObject && element._subtype === "MissionInfo") as MissionElementScriptObject;
-		let musicProfile = this.mission.elements.find((element) => element._type === MissionElementType.AudioProfile && element.description === "AudioMusic") as MissionElementAudioProfile;
-		let musicFileName = musicProfile.filename.slice(musicProfile.filename.lastIndexOf('/') + 1).toLowerCase();
-		// If the song is Shell, then choose the music based on the index of the level.
-		if (musicFileName.includes('shell')) musicFileName = ['groovepolice.ogg', 'classic vibe.ogg', 'beach party.ogg'][Number(missionInfo.level) % 3];
+		let levelIndex = getCurrentLevelArray().findIndex(x => x.simGroup === this.mission);
+		let musicFileName = ['groovepolice.ogg', 'classic vibe.ogg', 'beach party.ogg'][(levelIndex + 1) % 3]; // The music choice is based off of level index
 
 		await AudioManager.loadBuffers(["spawn.wav", "ready.wav", "set.wav", "go.wav", "whoosh.wav", "timetravelactive.wav", "infotutorial.wav", musicFileName]);
 		this.music = AudioManager.createAudioSource(musicFileName, AudioManager.musicGain);
@@ -333,6 +337,7 @@ export class Level extends Scheduler {
 			this.scene.add(pathedInterior.group);
 			this.physics.addInterior(pathedInterior);
 			this.interiors.push(pathedInterior);
+			for (let trigger of pathedInterior.triggers) this.triggers.push(trigger);
 
 			return;
 		}
@@ -405,7 +410,7 @@ export class Level extends Scheduler {
 		this.shapes.push(shape);
 		// This is a bit hacky, but wait a short amount so that all shapes will have been created by the time this codepath continues. This is necessary for correct sharing of data between shapes.
 		await Util.wait(10);
-		await shape.init(this);
+		await shape.init(this, element._id);
 
 		shape.setTransform(MisParser.parseVector3(element.position), MisParser.parseRotation(element.rotation), MisParser.parseVector3(element.scale));
 
@@ -427,6 +432,7 @@ export class Level extends Scheduler {
 
 		if (!trigger) return;
 
+		this.triggers.push(trigger);
 		this.physics.addTrigger(trigger);
 	}
 
@@ -476,6 +482,8 @@ export class Level extends Scheduler {
 
 		this.timeTravelSound?.stop();
 		this.timeTravelSound = null;
+
+		this.replay.init();
 
 		// Queue the ready-set-go events
 
@@ -592,6 +600,15 @@ export class Level extends Scheduler {
 		// The camera is translated up a bit so it looks "over" the marble
 		let cameraVerticalTranslation = new THREE.Vector3(0, 0, 0.3);
 
+		if (this.replay.mode === 'playback') {
+			let indexLow = Math.max(0, this.replay.currentTickIndex - 1);
+			let indexHigh = this.replay.currentTickIndex;
+
+			// Smoothly interpolate pitch and yaw between the last two keyframes
+			this.pitch = Util.lerp(this.replay.cameraOrientations[indexLow].pitch, this.replay.cameraOrientations[indexHigh].pitch, timeState.physicsTickCompletion);
+			this.yaw = Util.lerp(this.replay.cameraOrientations[indexLow].yaw, this.replay.cameraOrientations[indexHigh].yaw, timeState.physicsTickCompletion);
+		}
+
 		if (this.finishTime) {
 			// Make the camera spin around slowly
 			this.pitch = Util.lerp(this.finishPitch, DEFAULT_PITCH, Util.clamp((timeState.currentAttemptTime - this.finishTime.currentAttemptTime) / 333, 0, 1));
@@ -678,15 +695,16 @@ export class Level extends Scheduler {
 	tick(time?: number) {
 		if (this.paused || this.stopped) return;
 		if (time === undefined) time = performance.now();
+		let playReplay = this.replay.mode === 'playback';
 
-		if (gameButtons.use || this.useQueued) {
+		if (!playReplay && (gameButtons.use || this.useQueued)) {
 			if (this.outOfBounds) {
 				// Skip the out of bounce "animation" and restart immediately
 				this.clearSchedule();
 				this.restart();
 			} else if (this.heldPowerUp && document.pointerLockElement) {
+				this.replay.recordUsePowerUp(this.heldPowerUp);
 				this.heldPowerUp.use(this.timeState);
-				this.deselectPowerUp();
 			}
 		}
 		this.useQueued = false;
@@ -715,16 +733,20 @@ export class Level extends Scheduler {
 			elapsed -= 1000 / PHYSICS_TICK_RATE;
 
 			this.tickSchedule(this.timeState.currentAttemptTime);
-			this.physics.step(); // Step the physics
+			if (!playReplay) this.physics.step(); // Step the physics
 
 			for (let shape of this.shapes) shape.tick(this.timeState);
-			// Update pathed interior positions after the physics tick because they will have changed position only after the physics tick was calculated, not during.
-			for (let interior of this.interiors) if (interior instanceof PathedInterior) interior.updatePosition();
-			this.marble.tick(this.timeState);
 
+			if (!playReplay) {
+				// Update pathed interior positions after the physics tick because they will have changed position only after the physics tick was calculated, not during.
+				for (let interior of this.interiors) if (interior instanceof PathedInterior) interior.updatePosition();
+				this.marble.tick(this.timeState);
+			}
+			this.marble.updatePowerUpStates(this.timeState);
+			
 			this.jumpQueued = false;
 
-			if (this.timeState.currentAttemptTime < GO_TIME) {
+			if (this.timeState.currentAttemptTime < GO_TIME && !playReplay) {
 				// Lock the marble to the space above the start pad
 
 				let startPad = this.shapes.find((element) => element instanceof StartPad);
@@ -745,7 +767,37 @@ export class Level extends Scheduler {
 				this.marble.shape.setFriction(0);
 			} else {
 				this.marble.shape.setFriction(1);
+			}
+			
+			if (this.finishTime) {
+				let elapsed = this.timeState.currentAttemptTime - this.finishTime.currentAttemptTime;
+				if (elapsed >= 2000 && finishScreenDiv.classList.contains('hidden') && this.replay.mode !== 'playback') {
+					// Show the finish screen
+					document.exitPointerLock();
+					showFinishScreen();
+				}
+			}
 
+			if (gameButtons.cameraLeft) this.yaw += 1.5 / PHYSICS_TICK_RATE;
+			if (gameButtons.cameraRight) this.yaw -= 1.5 / PHYSICS_TICK_RATE;
+			if (gameButtons.cameraUp) this.pitch -= 1.5 / PHYSICS_TICK_RATE;
+			if (gameButtons.cameraDown) this.pitch += 1.5 / PHYSICS_TICK_RATE;
+
+			this.particles.tick();
+			tickDone = true;
+
+						// Record or playback the replay
+						if (!playReplay) this.replay.record();
+						else {
+							this.replay.playback();
+							if (this.replay.isPlaybackComplete()) {
+								stopAndExit();
+								return;
+							}
+						}
+						
+			// Note: It is incorrect that this TT code here runs after physics and shape updating, it should run at the top of this loop's body. However, changing this code's position now would make all TT catches about ~8 milliseconds later, giving an unfair advantage to those who have already set leaderboard scores using the previous calculation. So, for the sake of score integrity, we're keeping it this way.
+			if (this.timeState.currentAttemptTime >= GO_TIME) {
 				if (this.currentTimeTravelBonus > 0) {
 					// Subtract remaining time travel time
 					this.currentTimeTravelBonus -= 1000 / PHYSICS_TICK_RATE;
@@ -769,23 +821,6 @@ export class Level extends Scheduler {
 					this.currentTimeTravelBonus = 0;
 				}
 			}
-
-			if (this.finishTime) {
-				let elapsed = this.timeState.currentAttemptTime - this.finishTime.currentAttemptTime;
-				if (elapsed >= 2000 && finishScreenDiv.classList.contains('hidden')) {
-					// Show the finish screen
-					document.exitPointerLock();
-					showFinishScreen();
-				}
-			}
-
-			if (gameButtons.cameraLeft) this.yaw += 1.5 / PHYSICS_TICK_RATE;
-			if (gameButtons.cameraRight) this.yaw -= 1.5 / PHYSICS_TICK_RATE;
-			if (gameButtons.cameraUp) this.pitch -= 1.5 / PHYSICS_TICK_RATE;
-			if (gameButtons.cameraDown) this.pitch += 1.5 / PHYSICS_TICK_RATE;
-
-			this.particles.tick();
-			tickDone = true;
 		}
 
 		if (!this.rewinding)
@@ -853,11 +888,18 @@ export class Level extends Scheduler {
 	}
 
 	onMouseMove(e: MouseEvent) {
-		if (!document.pointerLockElement || this.finishTime || this.paused) return;
+		if (!document.pointerLockElement || this.finishTime || this.paused || this.replay.mode === 'playback') return;
 
 		// temp
 		let totalDistance = Math.hypot(e.movementX, e.movementY);
 		if (totalDistance > 300 && location.search.includes('debug')) alert(totalDistance + ', ' + e.movementX + ' ' + e.movementY);
+
+				// Strangely enough, Chrome really bugs out sometimes and flings the mouse into a random direction quickly. We try to catch that here and ignore the mouse movement if we detect it.
+		if (totalDistance > 350 && this.previousMouseMovementDistance * 4 < totalDistance) {
+			this.previousMouseMovementDistance *= 1.5; // Make the condition harder to hit the next time
+			return;
+		};
+		this.previousMouseMovementDistance = totalDistance;
 
 		let factor = Util.lerp(1 / 2500, 1 / 100, StorageManager.data.settings.mouseSensitivity);
 		let yFactor = StorageManager.data.settings.invertYAxis? -1 : 1;
@@ -990,7 +1032,9 @@ export class Level extends Scheduler {
 	}
 
 	touchFinish() {
-		if (this.finishTime !== null) return;
+		if (this.finishTime !== null || this.outOfBounds) return;
+
+		this.replay.recordTouchFinish();
 
 		if (this.gemCount < this.totalGems) {
 			AudioManager.play('missinggems.wav');
@@ -1007,6 +1051,8 @@ export class Level extends Scheduler {
 			this.finishTime.currentAttemptTime -= toSubtract;
 			if (this.currentTimeTravelBonus === 0) this.finishTime.gameplayClock -= toSubtract;
 			this.finishTime.physicsTickCompletion = completionOfImpact;
+			
+			if (this.replay.mode === 'playback') this.finishTime = this.replay.finishTime;
 
 			this.finishYaw = this.yaw;
 			this.finishPitch = this.pitch;

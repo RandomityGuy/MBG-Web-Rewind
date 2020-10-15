@@ -6,3 +6,4 @@ todo.txt
 src/php/leaderboard.json
 **/screenshots
 **/.vscode
+*.code-workspace
