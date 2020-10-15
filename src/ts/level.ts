@@ -146,6 +146,7 @@ export class Level extends Scheduler {
 	// Rewind 
 	rewinding = false;
 	rewind: Rewind;
+	lastRewinding = false;
 
 	deltaMs: number; // Why isnt this stored anywhere
 
@@ -786,15 +787,15 @@ export class Level extends Scheduler {
 			this.particles.tick();
 			tickDone = true;
 
-						// Record or playback the replay
-						if (!playReplay) this.replay.record();
-						else {
-							this.replay.playback();
-							if (this.replay.isPlaybackComplete()) {
-								stopAndExit();
-								return;
-							}
-						}
+			// Record or playback the replay
+			if (!playReplay) this.replay.record();
+			else {
+				this.replay.playback();
+				if (this.replay.isPlaybackComplete()) {
+					stopAndExit();
+					return;
+				}
+			}
 						
 			// Note: It is incorrect that this TT code here runs after physics and shape updating, it should run at the top of this loop's body. However, changing this code's position now would make all TT catches about ~8 milliseconds later, giving an unfair advantage to those who have already set leaderboard scores using the previous calculation. So, for the sake of score integrity, we're keeping it this way.
 			if (this.timeState.currentAttemptTime >= GO_TIME) {
@@ -821,17 +822,26 @@ export class Level extends Scheduler {
 					this.currentTimeTravelBonus = 0;
 				}
 			}
+
+			if (!this.rewinding && !playReplay)
+			{
+				this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(1000 / PHYSICS_TICK_RATE)); // Fair enough, its a constant delta t
+			}
 		}
 
-		if (!this.rewinding)
-		{
-			this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(this.deltaMs));
-		}
-		else
+
+		if (this.rewinding && !playReplay)
 		{
 			this.rewind.rewindFrame(null);
 			this.updateUI();
 		}
+
+		if (this.lastRewinding && !this.rewinding) // We just stopped rewinding, so edit out the replay
+		{
+			this.rewind.rewindManager.spliceReplay(this.timeState.currentAttemptTime);
+		}
+
+		this.lastRewinding = this.rewinding;
 
 		this.updateGameState();
 

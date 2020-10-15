@@ -123,7 +123,7 @@ export class RewindManager
     
         while (lo <= hi)
         {
-            m = (lo + hi) / 2;
+            m = Math.floor((lo + hi) / 2);
     
             if (this.frames[m].ms < ms)
                 lo = m + 1;
@@ -173,7 +173,7 @@ export class RewindManager
     
         while (lo <= hi)
         {
-            m = (lo + hi) / 2;
+            m = Math.floor((lo + hi) / 2);
     
             if (this.frames[m].elapsedTime < ms)
                 lo = m + 1;
@@ -272,6 +272,94 @@ export class RewindManager
             let ret = this.frames.pop();
             return ret;
         }
+    }
+
+    spliceReplay(ms: number) {
+        let replay = this.level.replay;
+
+        let idx = 0;
+
+        // Get the indices at the point we need to splice, use binary search
+        if (ms < replay.currentAttemptTimes[0]) idx = 0;
+        else
+        {
+            if (ms > replay.currentAttemptTimes[replay.currentAttemptTimes.length-1])
+                idx = replay.currentAttemptTimes.length - 1;
+            else
+            {
+                let lo = 0, hi = replay.currentAttemptTimes.length - 1;
+                let m;
+
+                let index0 = -1;
+                let index1 = -2;
+
+                while (lo <= hi)
+                {
+                    m = Math.floor((lo + hi) / 2);
+
+                    if (replay.currentAttemptTimes[m] < ms)
+                        lo = m + 1;
+                    else if (replay.currentAttemptTimes[m] > ms)
+                        hi = m - 1;
+                    else
+                    {
+                        index0 = index1 = m;
+                        break;
+                    }
+                }
+
+                if (index0 == index1) // We did find the frame, no need to interpolate
+                    idx = index0;
+                else
+                if (index0 == -1 && index1 == -2)	// We didnt find the exact frame, need to interpolate
+                {
+                    index0 = lo;
+                    index1 = hi;
+                }
+
+                idx = Math.max(index0,index1); // Should probably interpolate if this happens          
+            }
+        }
+
+        replay.currentAttemptTimes = replay.currentAttemptTimes.slice(0,idx);
+        replay.marblePositions = replay.marblePositions.slice(0,idx);
+        replay.marbleOrientations = replay.marbleOrientations.slice(0,idx);
+        replay.marbleLinearVelocities = replay.marbleLinearVelocities.slice(0,idx);
+        replay.marbleAngularVelocities = replay.marbleAngularVelocities.slice(0,idx);
+        
+        // I scream
+
+        function removeConditional(arr: any[],n: number) {
+            let newArr = [];
+            for (let element of arr)
+            {
+                if (element.tickIndex < n) newArr.push(element);
+            }
+            return newArr;
+        }
+
+        replay.marbleInside = removeConditional(replay.marbleInside,idx);
+        replay.marbleEnter = removeConditional(replay.marbleEnter,idx);
+        replay.marbleContact = removeConditional(replay.marbleContact,idx);
+        replay.uses = removeConditional(replay.uses,idx);
+
+        replay.cameraOrientations = replay.cameraOrientations.slice(0,idx);
+        replay.rollingSoundGain = replay.rollingSoundGain.slice(0,idx);
+        replay.rollingSoundPlaybackRate = replay.rollingSoundPlaybackRate.slice(0,idx);
+        replay.slidingSoundGain = replay.slidingSoundGain.slice(0,idx);
+        replay.jumpSoundTimes = replay.jumpSoundTimes.slice(0,idx);
+
+        replay.bounceTimes = removeConditional(replay.bounceTimes,idx);
+
+        let newtickindices = [];
+        for (let tick of replay.touchFinishTickIndices)
+        {
+            newtickindices.push(tick - idx);
+        }
+        replay.touchFinishTickIndices = newtickindices;
+        replay.currentTickIndex -= idx;
+
+        
     }
 
     getNextFrame(delta: number) {

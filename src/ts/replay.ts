@@ -17,6 +17,8 @@ export class Replay {
 	/** Replays get invalidated if they don't end in a successful finish. */
 	isInvalid = false;
 
+	/** The internal timer running since mission load */ // Pls why wasnt this there already, could have sped up replay edits by 10 billion percent
+	currentAttemptTimes: number[] = [];
 	/** The position of the marble at each physics tick. */
 	marblePositions: OIMO.Vec3[] = [];
 	/** The orientation of the marble at each physics tick. */
@@ -102,6 +104,7 @@ export class Replay {
 
 			this.canStore = true;
 			this.isInvalid = false;
+			this.currentAttemptTimes.length = 0;
 			this.marblePositions.length = 0;
 			this.marbleOrientations.length = 0;
 			this.marbleLinearVelocities.length = 0;
@@ -164,6 +167,7 @@ export class Replay {
 	record() {
 		if (this.mode === 'playback' || !this.canStore) return;
 
+		this.currentAttemptTimes.push(this.level.timeState.currentAttemptTime);
 		this.marblePositions.push(this.level.marble.body.getPosition());
 		this.marbleOrientations.push(this.level.marble.body.getOrientation());
 		this.marbleLinearVelocities.push(this.level.marble.body.getLinearVelocity());
