@@ -30,6 +30,12 @@ export abstract class AbstractBumper extends Shape {
 	render(time: TimeState) {
 		super.render(time);
 
+		// Fix the wiggle for rewind like bruh
+		if (time.timeSinceLoad < this.wiggleAnimationStart)
+		{
+			this.wiggleAnimationStart = -Infinity;
+		}
+
 		// Create the "wiggle" effect
 		let elapsed = Math.min(1e10, time.timeSinceLoad - this.wiggleAnimationStart);
 		let wiggleFactor = Util.clamp(1 - elapsed / 333, 0, 1);

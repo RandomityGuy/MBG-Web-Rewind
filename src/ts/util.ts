@@ -330,6 +330,7 @@ export abstract class Util {
 /** A scheduler can be used to schedule tasks in the future which will be executed when it's time. */
 export abstract class Scheduler {
 	scheduled: {
+		id: number // This really is useful
 		time: number,
 		callback: () => any
 	}[] = [];
@@ -344,7 +345,16 @@ export abstract class Scheduler {
 	}
 
 	schedule(time: number, callback: () => any) {
-		this.scheduled.push({ time, callback });
+		let id = Math.random();
+		this.scheduled.push({ id, time, callback });
+		return id;
+	}
+
+	/** Cancels a schedule */
+	cancel(id: number) {
+		let idx = this.scheduled.findIndex( (val) => {val.id == id});
+		if (idx == -1) return;
+		this.scheduled.splice(idx,1);
 	}
 
 	clearSchedule() {

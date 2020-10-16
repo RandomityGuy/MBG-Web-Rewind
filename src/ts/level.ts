@@ -107,6 +107,8 @@ export class Level extends Scheduler {
 	timeState: TimeState;
 	/** The last performance.now() time the physics were ticked. */
 	lastPhysicsTick: number = null;
+
+	lastPaused = false;
 	paused = false;
 	/** If the level is stopped, it shouldn't be used anymore. */
 	stopped = false;
@@ -149,6 +151,7 @@ export class Level extends Scheduler {
 	lastRewinding = false;
 
 	deltaMs: number; // Why isnt this stored anywhere
+	oobSchedule: number;
 
 	constructor(missionGroup: MissionElementSimGroup, missionPath: string) {
 		super();
@@ -443,6 +446,7 @@ export class Level extends Scheduler {
 		this.timeState.gameplayClock = 0;
 		this.currentTimeTravelBonus = 0;
 		this.outOfBounds = false;
+		this.oobSchedule = -1;
 		this.lastPhysicsTick = null;
 		
 		if (this.totalGems > 0) {
@@ -1038,7 +1042,7 @@ export class Level extends Scheduler {
 		setCenterText('outofbounds');
 		AudioManager.play('whoosh.wav');
 
-		this.schedule(this.timeState.currentAttemptTime + 2000, () => this.restart());
+		this.oobSchedule = this.schedule(this.timeState.currentAttemptTime + 2000, () => this.restart());
 	}
 
 	touchFinish() {

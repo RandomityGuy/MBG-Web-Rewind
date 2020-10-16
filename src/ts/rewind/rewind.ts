@@ -163,6 +163,8 @@ export class Rewind {
         let level = this.rewindManager.level;
 
         level.outOfBounds = false;
+        level.cancel(level.oobSchedule);
+        
         let rewindDelta = level.deltaMs;
 
         let framedata: Frame = null;

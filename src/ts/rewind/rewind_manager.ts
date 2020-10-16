@@ -351,13 +351,7 @@ export class RewindManager
 
         replay.bounceTimes = removeConditional(replay.bounceTimes,idx);
 
-        let newtickindices = [];
-        for (let tick of replay.touchFinishTickIndices)
-        {
-            newtickindices.push(tick - idx);
-        }
-        replay.touchFinishTickIndices = newtickindices;
-        replay.currentTickIndex -= idx;
+        replay.currentTickIndex = replay.currentAttemptTimes.length;
 
         
     }
