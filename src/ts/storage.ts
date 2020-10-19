@@ -25,8 +25,13 @@ interface StorageData {
 			"cameraDown": string,
 			"cameraLeft": string,
 			"cameraRight": string,
-			"freeLook": string
+			"freeLook": string,
+			"rewind": string
 		},
+		rewindTimescale: number,
+		rewindQuality: number,
+		rewindMatchFPS: boolean,
+		rewindGhosts: boolean,
 		mouseSensitivity: number,
 		invertYAxis: boolean,
 		alwaysFreeLook: boolean
@@ -59,8 +64,13 @@ const DEFAULT_STORAGE_DATA: StorageData = {
 			"cameraDown": "ArrowDown",
 			"cameraLeft": "ArrowLeft",
 			"cameraRight": "ArrowRight",
-			"freeLook": "RMB"
+			"freeLook": "RMB",
+			"rewind": "KeyR"
 		},
+		rewindTimescale: 1,
+		rewindQuality: 0,
+		rewindMatchFPS: true,
+		rewindGhosts: false,
 		mouseSensitivity: 0.2,
 		invertYAxis: false,
 		alwaysFreeLook: false

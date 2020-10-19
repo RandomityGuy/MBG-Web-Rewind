@@ -2,6 +2,7 @@ import { Frame } from "./frame"
 import { Util } from "../util"
 import { Level } from "../level";
 
+/** Compares two lists and returns whether they are any different */
 function compareListEquality(l1: any[],l2: any[]) {
     for (var i = 0; i < l1.length; i++)
     {
@@ -13,6 +14,7 @@ function compareListEquality(l1: any[],l2: any[]) {
     return true;
 }
 
+/** This is lerp, but on a list */
 function interpolateList(l1: number[],l2: number[],ratio: number) {
     let ret = [];
     for (var i = 0; i < l1.length; i++)
@@ -22,17 +24,18 @@ function interpolateList(l1: number[],l2: number[],ratio: number) {
     return ret;
 }
 
+/** A class that manages frames for rewind */
 export class RewindManager
 {
     frames: Frame[];
     level: Level;
-    streamTimePosition: number;
-    currentIndex: number;
 
+    /** Pushes a frame to its list */
     pushFrame(frame: Frame) {
         this.frames.push(frame);
     }
 
+    /** Pops the last frame in its list */
     popFrame(peek: boolean) {
         if (peek)
         {
@@ -41,18 +44,22 @@ export class RewindManager
         return this.frames.pop();
     }
 
+    /** Gets the frame at index in its list */
     getFrameAt(index: number) {
         return this.frames[index];
     }
 
+    /** Gets the number of frames stored in it */
     getFrameCount() {
         return this.frames.length;
     }
 
+    /** Clears all the frames */
     clear() {
         this.frames = [];
     }
 
+    /** Interpolates between two frames */
     interpolateFrame(one: Frame, two: Frame, ratio: number, delta: number) {
         let f = new Frame();
         f.deltaMs = delta;
@@ -66,13 +73,16 @@ export class RewindManager
 	    	f.ms = Util.lerp(one.ms, two.ms, ratio);
         }
         
+        // Interpolate the marble's physical quantities
         f.position = Util.lerpThreeVectors(one.position,two.position,ratio);
         f.rotation = one.rotation.clone().slerp(two.rotation,ratio);
         f.velocity = Util.lerpThreeVectors(one.velocity,two.velocity,ratio);
         f.spin = Util.lerpThreeVectors(one.velocity,two.velocity,ratio);
 
+        // Bruh how can we interpolate this
         f.powerup = two.powerup;
 
+        // Theres a discontinuity everytime a TT is picked up so we must interpolate carefully, we dont interpolate if theres a discontinuity
         let isTTpickedUp = compareListEquality(one.ttstates,two.ttstates);
         if (isTTpickedUp)
         {
@@ -107,6 +117,7 @@ export class RewindManager
         return f;
     }
 
+    /** Gets the frame at time according to the timer's time */
     getRealtimeFrameAtMs(ms: number) {
         //basically do a binary search
     
@@ -157,6 +168,7 @@ export class RewindManager
         return this.interpolateFrame(this.frames[index0],this.frames[index1],ratio,ms); //new Frame(interpolateFrame(Frames[index0], Frames[index1], ratio, ms));
     }
 
+    /** Gets the frame at the ms according to the elapsed time */
     getFrameAtElapsed(ms: number) {
         //basically do a binary search
     
@@ -207,6 +219,7 @@ export class RewindManager
         return this.interpolateFrame(this.frames[index0],this.frames[index1],ratio,ms); //new Frame(interpolateFrame(Frames[index0], Frames[index1], ratio, ms));
     }
 
+    /* Gets the appropriate frame since the end after delta ms */
     getNextRewindFrame(delta: number) {
         if (delta < 0) return null;
 
@@ -216,6 +229,7 @@ export class RewindManager
         {
             if (delta < this.frames[this.frames.length-1].deltaMs)
             {
+                // The frame we want is between the current frame and the previous frame, so interpolate between that
                 let first = this.frames[this.frames.length - 1].clone();
                 let second = this.frames[this.frames.length - 2].clone();
                 this.frames.pop();
@@ -228,13 +242,14 @@ export class RewindManager
             }
             else
             {
+                // The frame we want is beyond that so we must improvise
                 let first = this.frames[this.frames.length - 1].clone();
 
                 let deltaAccumulator = 0;
                 let midframe = this.frames[this.frames.length - 1].clone();
 
                 let outOfFrames = 0;
-
+                // Pop out frames till the frame we need is between the last frame and the frame before that
                 while (deltaAccumulator < delta)
                 {
                     if (this.frames.length == 0)
@@ -249,6 +264,7 @@ export class RewindManager
                 if (!outOfFrames)
                 {
                     //this.frames.pop_back();
+                    // Get the frame
 
                     let lastframe = this.frames.length == 0 ? midframe : this.frames[this.frames.length-1].clone();
 
@@ -259,6 +275,7 @@ export class RewindManager
                 }
                 else
                 {
+                    // We ran out of frames so.. eh, lets interpolate partially
                     let interpolated = this.interpolateFrame(first, midframe, delta / deltaAccumulator, deltaAccumulator - delta);
 
                     this.frames.push(interpolated.clone());
@@ -274,6 +291,7 @@ export class RewindManager
         }
     }
 
+    /* Edits the replay to erase the frames during which we rewound time */
     spliceReplay(ms: number) {
         let replay = this.level.replay;
 
@@ -321,6 +339,7 @@ export class RewindManager
             }
         }
 
+        // Slice off these
         replay.currentAttemptTimes = replay.currentAttemptTimes.slice(0,idx);
         replay.marblePositions = replay.marblePositions.slice(0,idx);
         replay.marbleOrientations = replay.marbleOrientations.slice(0,idx);
@@ -338,6 +357,7 @@ export class RewindManager
             return newArr;
         }
 
+        // Conditionally remove those whose ticks are in the future
         replay.marbleInside = removeConditional(replay.marbleInside,idx);
         replay.marbleEnter = removeConditional(replay.marbleEnter,idx);
         replay.marbleContact = removeConditional(replay.marbleContact,idx);
@@ -354,18 +374,6 @@ export class RewindManager
         replay.currentTickIndex = replay.currentAttemptTimes.length;
 
         
-    }
-
-    getNextFrame(delta: number) {
-        this.streamTimePosition += delta;
-        if (this.streamTimePosition < 0) this.streamTimePosition = 0;
-        let timepos = this.streamTimePosition;
-
-        let testF = this.getFrameAtElapsed(delta);
-
-        if (testF == null) return null;
-
-        return testF;
     }
 
 

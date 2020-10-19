@@ -6,28 +6,28 @@ import { PowerUp } from "../shapes/power_up";
 
 export class Frame
 {
-    ms: number
-    deltaMs: number
-    position: THREE.Vector3
-    rotation: OIMO.Quat
-    velocity: THREE.Vector3
-    spin: THREE.Vector3
-    powerup: PowerUp
-    timebonus: number
-    timeSinceLoad: number
-    gemcount: number
-    gemstates: boolean[]
-    ttstates: number[]
-    powerupstates: number[]
+    ms: number // The time on the clock
+    deltaMs: number // The time delta between two successive frames
+    position: THREE.Vector3 // The posititon of the marble
+    rotation: OIMO.Quat // The rotation of the marble
+    velocity: THREE.Vector3 // The velocity of the marble
+    spin: THREE.Vector3 // The angular velocity of the marble
+    powerup: PowerUp // The powerup stored at that frame in the inventory
+    timebonus: number // The time at which a time bonus was picked
+    timeSinceLoad: number // the time since the level was loaded
+    gemcount: number // Number of gems collected
+    gemstates: boolean[] // List of visibilities of gems
+    ttstates: number[] // List of times since a time travel was collected
+    powerupstates: number[] // List of times a powerup was collected
     // gamestate: string // holy shit this is so deterministic, damn i didnt even need this
-    lmstates: number[]
+    lmstates: number[] // List of times when a landmine exploded
     // nextstatetime: number // Damnnn
-    activepowstates: number[]
-    gravityDir: THREE.Vector3
-    trapdoordirs: number[]
-    trapdoorcontacttime: number[]
-    trapdoorcompletion: number[]
-    elapsedTime: number
+    activepowstates: number[] // List of times when a Helicopter/ShockAbsorber/SuperBounce was used
+    gravityDir: THREE.Vector3 // The "up" of the level
+    trapdoordirs: number[] // List of directions of trapdoor
+    trapdoorcontacttime: number[] // List of times when a trapdoor was touched
+    trapdoorcompletion: number[] // List of trapdoor completions
+    elapsedTime: number // same as timeSinceLoad
 
     clone() {
         let retf = new Frame();

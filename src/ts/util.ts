@@ -352,7 +352,7 @@ export abstract class Scheduler {
 
 	/** Cancels a schedule */
 	cancel(id: number) {
-		let idx = this.scheduled.findIndex( (val) => {val.id == id});
+		let idx = this.scheduled.findIndex( (val) => { return val.id == id });
 		if (idx == -1) return;
 		this.scheduled.splice(idx,1);
 	}

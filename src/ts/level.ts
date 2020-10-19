@@ -189,6 +189,9 @@ export class Level extends Scheduler {
 		this.rewind = new Rewind();
 		this.rewind.rewindManager = new RewindManager();
 		this.rewind.rewindManager.level = this;
+		this.rewind.timescale = StorageManager.data.settings.rewindTimescale;
+		this.rewind.matchfps = StorageManager.data.settings.rewindMatchFPS;
+		this.rewind.frameskip = StorageManager.data.settings.rewindQuality;
 	}
 
 	async start() {
@@ -702,6 +705,8 @@ export class Level extends Scheduler {
 		if (time === undefined) time = performance.now();
 		let playReplay = this.replay.mode === 'playback';
 
+		this.rewinding = gameButtons.rewind;
+
 		if (!playReplay && (gameButtons.use || this.useQueued)) {
 			if (this.outOfBounds) {
 				// Skip the out of bounce "animation" and restart immediately
@@ -826,13 +831,14 @@ export class Level extends Scheduler {
 					this.currentTimeTravelBonus = 0;
 				}
 			}
-
-			if (!this.rewinding && !playReplay)
-			{
-				this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(1000 / PHYSICS_TICK_RATE)); // Fair enough, its a constant delta t
-			}
 		}
 
+
+		if (!this.rewinding && !playReplay)
+		{
+			// this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(1000 / PHYSICS_TICK_RATE)); // Fair enough, its a constant delta t
+			this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(this.deltaMs)); // bruh timescale breaks down if this is in physics tick
+		}
 
 		if (this.rewinding && !playReplay)
 		{

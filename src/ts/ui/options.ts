@@ -10,23 +10,24 @@ export const optionsDiv = document.querySelector('#options') as HTMLDivElement;
 const tabGraphics = document.querySelector('#tab-graphics') as HTMLImageElement;
 const tabAudio = document.querySelector('#tab-audio') as HTMLImageElement;
 const tabControls = document.querySelector('#tab-controls') as HTMLImageElement;
+const tabRewind = document.querySelector('#tab-rewind') as HTMLImageElement;
 
-const selectTab = (which: 'graphics' | 'audio' | 'controls') => {
-	for (let elem of [tabGraphics, tabAudio, tabControls]) {
+const selectTab = (which: 'graphics' | 'audio' | 'controls' | 'rewind') => {
+	for (let elem of [tabGraphics, tabAudio, tabControls, tabRewind]) {
 		elem.style.zIndex = "-1";
 	}
-	for (let elem of [graphicsDiv, audioDiv, controlsDiv]) {
+	for (let elem of [graphicsDiv, audioDiv, controlsDiv, rewindDiv]) {
 		elem.classList.add('hidden');
 	}
 
-	let index = ['graphics', 'audio', 'controls'].indexOf(which);
+	let index = ['graphics', 'audio', 'controls', 'rewind'].indexOf(which);
 
-	let elem = [tabGraphics, tabAudio, tabControls][index];
+	let elem = [tabGraphics, tabAudio, tabControls, tabRewind][index];
 	elem.style.zIndex = "0";
-	[graphicsDiv, audioDiv, controlsDiv][index].classList.remove('hidden');
+	[graphicsDiv, audioDiv, controlsDiv, rewindDiv][index].classList.remove('hidden');
 };
 
-const setupTab = (element: HTMLImageElement, which: 'graphics' | 'audio' | 'controls') => {
+const setupTab = (element: HTMLImageElement, which: 'graphics' | 'audio' | 'controls' | 'rewind') => {
 	element.addEventListener('mousedown', (e) => {
 		if (e.button !== 0) return;
 		AudioManager.play('buttonpress.wav');
@@ -36,6 +37,7 @@ const setupTab = (element: HTMLImageElement, which: 'graphics' | 'audio' | 'cont
 setupTab(tabGraphics, 'graphics');
 setupTab(tabAudio, 'audio');
 setupTab(tabControls, 'controls');
+setupTab(tabRewind, 'rewind');
 
 const homeButton = document.querySelector('#options-home') as HTMLImageElement;
 setupButton(homeButton, 'options/mainm', () => {
@@ -46,6 +48,7 @@ setupButton(homeButton, 'options/mainm', () => {
 const graphicsDiv = document.querySelector('#options-graphics') as HTMLDivElement;
 const audioDiv = document.querySelector('#options-audio') as HTMLDivElement;
 const controlsDiv = document.querySelector('#options-controls') as HTMLDivElement;
+const rewindDiv = document.querySelector('#options-rewind') as HTMLDivElement;
 
 export const initOptions = async () => {
 	// Init all buttons, sliders and keybinds
@@ -54,10 +57,15 @@ export const initOptions = async () => {
 	[windowedButton, fullButton][StorageManager.data.settings.screenStyle].click();
 	[depth16, depth32][StorageManager.data.settings.colorDepth].click();
 	if (StorageManager.data.settings.shadows) shadowsCheckbox.click();
+	if (StorageManager.data.settings.rewindMatchFPS) matchFPSCheckbox.click();
+	if (StorageManager.data.settings.rewindGhosts) GhostsCheckbox.click();
 
 	musicVolumeKnob.style.left = Math.floor(musicVolumeKnobLeft + StorageManager.data.settings.musicVolume * trackLength) + 'px';
 	soundVolumeKnob.style.left = Math.floor(soundVolumeKnobLeft + StorageManager.data.settings.soundVolume * trackLength) + 'px';
 	mouseSensitivityKnob.style.left = Math.floor(mouseSensitivityKnobLeft + StorageManager.data.settings.mouseSensitivity * trackLength) + 'px';
+
+	timescaleKnob.style.left = Math.floor(timescaleKnobLeft + StorageManager.data.settings.rewindTimescale * trackLength) + 'px';
+	qualityKnob.style.left = Math.floor(qualityKnobLeft + StorageManager.data.settings.rewindQuality * trackLength) + 'px';
 
 	refreshKeybindings();
 
@@ -189,20 +197,28 @@ const musicVolumeTrack = document.querySelector('#audio-music-track') as HTMLIma
 const musicVolumeKnob = document.querySelector('#audio-music-knob') as HTMLImageElement;
 const soundVolumeTrack = document.querySelector('#audio-sound-track') as HTMLImageElement;
 const soundVolumeKnob = document.querySelector('#audio-sound-knob') as HTMLImageElement;
+const timescaleTrack = document.querySelector('#rewind-timescale') as HTMLImageElement;
+const timescaleKnob = document.querySelector('#rewind-timescale-knob') as HTMLImageElement;
+const qualityTrack = document.querySelector('#rewind-quality') as HTMLImageElement;
+const qualityKnob = document.querySelector('#rewind-quality-knob') as HTMLImageElement;
 const trackLength = 235; // The total draggable length of the slider
 const musicVolumeKnobLeft = 155; // The left-most position of the knob
 const soundVolumeKnobLeft = 157;
+const timescaleKnobLeft = 160; // The left-most position of the knob
+const qualityKnobLeft = 160;
 const mouseSensitivityKnobLeft = 148;
 let draggingMusicVolume = false;
 let draggingSoundVolume = false;
+let draggingTimeScale = false;
+let draggingQuality = false;
 let draggingMouseSensitivity = false;
 let soundTestingSound: AudioSource = null;
 
 window.addEventListener('mouseup', () => {
-	if (!draggingMusicVolume && !draggingSoundVolume && !draggingMouseSensitivity) return;
+	if (!draggingMusicVolume && !draggingSoundVolume && !draggingMouseSensitivity && !draggingTimeScale && !draggingQuality) return;
 
 	// Release all dragging things
-	draggingMusicVolume = draggingSoundVolume = draggingMouseSensitivity = false;
+	draggingMusicVolume = draggingSoundVolume = draggingMouseSensitivity = draggingTimeScale = draggingQuality = false;
 	StorageManager.store();
 
 	if (soundTestingSound) {
@@ -215,6 +231,10 @@ musicVolumeTrack.addEventListener('mousedown', () => draggingMusicVolume = true)
 musicVolumeKnob.addEventListener('mousedown', () => draggingMusicVolume = true);
 soundVolumeTrack.addEventListener('mousedown', () => draggingSoundVolume = true);
 soundVolumeKnob.addEventListener('mousedown', () => draggingSoundVolume = true);
+timescaleTrack.addEventListener('mousedown', () => draggingTimeScale = true);
+timescaleKnob.addEventListener('mousedown', () => draggingTimeScale = true);
+qualityTrack.addEventListener('mousedown', () => draggingQuality = true);
+qualityKnob.addEventListener('mousedown', () => draggingQuality = true);
 
 const updateSliders = async () => {
 	requestAnimationFrame(updateSliders);
@@ -252,6 +272,22 @@ const updateSliders = async () => {
 
 		mouseSensitivityKnob.style.left = Math.floor(mouseSensitivityKnobLeft + completion * trackLength) + 'px';
 		StorageManager.data.settings.mouseSensitivity = completion;
+	}
+
+	if (draggingTimeScale) {
+		let leftStart = optionsDiv.getBoundingClientRect().left + timescaleKnobLeft;
+		let completion = Util.clamp(((currentMousePosition.x - 12) - leftStart) / trackLength, 0, 1);
+
+		timescaleKnob.style.left = Math.floor(timescaleKnobLeft + completion * trackLength) + 'px';
+		StorageManager.data.settings.rewindTimescale = completion;
+	}
+
+	if (draggingQuality) {
+		let leftStart = optionsDiv.getBoundingClientRect().left + qualityKnobLeft;
+		let completion = Util.clamp(((currentMousePosition.x - 12) - leftStart) / trackLength, 0, 1);
+
+		qualityKnob.style.left = Math.floor(qualityKnobLeft + completion * trackLength) + 'px';
+		StorageManager.data.settings.rewindQuality = completion;
 	}
 };
 requestAnimationFrame(updateSliders);
@@ -309,7 +345,8 @@ const buttonToDisplayName: Record<keyof typeof StorageManager.data.settings.game
 	cameraDown: 'Rotate Camera Down',
 	cameraLeft: 'Rotate Camera Left',
 	cameraRight: 'Rotate Camera Right',
-	freeLook: 'Free Look'
+	freeLook: 'Free Look',
+	rewind: 'Rewind',
 };
 
 const formatKeybinding = (button: keyof typeof StorageManager.data.settings.gameButtonMapping) => {
@@ -325,6 +362,7 @@ const refreshKeybindings = () => {
 	buttonMarbleDownContent.textContent = formatKeybinding('down');
 	buttonMarbleUseContent.textContent = formatKeybinding('use');
 	buttonMarbleJumpContent.textContent = formatKeybinding('jump');
+	buttonRewindContent.textContent = formatKeybinding('rewind');
 	buttonCameraLeftContent.textContent = formatKeybinding('cameraLeft');
 	buttonCameraRightContent.textContent = formatKeybinding('cameraRight');
 	buttonCameraUpContent.textContent = formatKeybinding('cameraUp');
@@ -416,6 +454,7 @@ const buttonMarbleUp = document.querySelector('#button-marble-up') as HTMLImageE
 const buttonMarbleDown = document.querySelector('#button-marble-down') as HTMLImageElement;
 const buttonMarbleUse = document.querySelector('#button-marble-use') as HTMLImageElement;
 const buttonMarbleJump = document.querySelector('#button-marble-jump') as HTMLImageElement;
+const buttonRewind = document.querySelector('#button-rewind') as HTMLImageElement;
 
 setupButton(buttonMarbleLeft, 'options/cntr_mrb_lft', () => changeKeybinding('left'));
 setupButton(buttonMarbleRight, 'options/cntr_mrb_rt', () => changeKeybinding('right'));
@@ -423,6 +462,7 @@ setupButton(buttonMarbleUp, 'options/cntr_mrb_fw', () => changeKeybinding('up'))
 setupButton(buttonMarbleDown, 'options/cntr_mrb_bak', () => changeKeybinding('down'));
 setupButton(buttonMarbleUse, 'options/cntr_mrb_pwr', () => changeKeybinding('use'));
 setupButton(buttonMarbleJump, 'options/cntr_mrb_jmp', () => changeKeybinding('jump'));
+setupButton(buttonRewind, 'options/cntr_rwnd', () => changeKeybinding('rewind'));
 
 const buttonMarbleLeftContent = document.querySelector('#button-marble-left-content') as HTMLParagraphElement;
 const buttonMarbleRightContent = document.querySelector('#button-marble-right-content') as HTMLParagraphElement;
@@ -430,6 +470,7 @@ const buttonMarbleUpContent = document.querySelector('#button-marble-up-content'
 const buttonMarbleDownContent = document.querySelector('#button-marble-down-content') as HTMLParagraphElement;
 const buttonMarbleUseContent = document.querySelector('#button-marble-use-content') as HTMLParagraphElement;
 const buttonMarbleJumpContent = document.querySelector('#button-marble-jump-content') as HTMLParagraphElement;
+const buttonRewindContent = document.querySelector('#button-rewind-content') as HTMLParagraphElement;
 
 const buttonCameraLeft = document.querySelector('#button-camera-left') as HTMLImageElement;
 const buttonCameraRight = document.querySelector('#button-camera-right') as HTMLImageElement;
@@ -517,3 +558,35 @@ const setResetMarbleTextureState = (enabled: boolean) => {
 		(document.querySelector('#graphics-marble-texture-reset-text') as HTMLDivElement).style.opacity = '0.7';
 	}
 };
+
+const matchFPSCheckbox = document.querySelector('#rewind-matchfps') as HTMLImageElement;
+
+setupButton(matchFPSCheckbox, 'options/graf_chkbx', () => {
+	StorageManager.data.settings.rewindMatchFPS = !matchFPSCheckbox.hasAttribute('data-locked');
+	StorageManager.store();
+
+	// Toggle the checkbox
+	if (!matchFPSCheckbox.hasAttribute('data-locked')) {
+		matchFPSCheckbox.setAttribute('data-locked', '');
+		matchFPSCheckbox.src = './assets/ui/options/graf_chkbx_d.png';
+	} else {
+		matchFPSCheckbox.removeAttribute('data-locked');
+		matchFPSCheckbox.src = './assets/ui/options/graf_chkbx_h.png';
+	}
+});
+
+const GhostsCheckbox = document.querySelector('#rewind-ghosts') as HTMLImageElement;
+
+setupButton(GhostsCheckbox, 'options/graf_chkbx', () => {
+	StorageManager.data.settings.rewindGhosts = !GhostsCheckbox.hasAttribute('data-locked');
+	StorageManager.store();
+
+	// Toggle the checkbox
+	if (!GhostsCheckbox.hasAttribute('data-locked')) {
+		GhostsCheckbox.setAttribute('data-locked', '');
+		GhostsCheckbox.src = './assets/ui/options/graf_chkbx_d.png';
+	} else {
+		GhostsCheckbox.removeAttribute('data-locked');
+		GhostsCheckbox.src = './assets/ui/options/graf_chkbx_h.png';
+	}
+});

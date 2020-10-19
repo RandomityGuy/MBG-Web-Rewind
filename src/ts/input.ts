@@ -64,10 +64,6 @@ window.addEventListener('keydown', (e) => {
 			if (key === 'use') state.currentLevel.useQueued = true;
 		}
 	}
-
-	if (e.code === 'KeyR' && !(!state.currentLevel || gameUiDiv.classList.contains('hidden') || !state.currentLevel || state.currentLevel.paused || state.currentLevel.finishTime)) {
-		state.currentLevel.rewinding = true;
-	}
 });
 
 window.addEventListener('keyup', (e) => {
@@ -78,10 +74,6 @@ window.addEventListener('keyup', (e) => {
 		if (e.code !== StorageManager.data.settings.gameButtonMapping[key]) continue;
 
 		gameButtons[key] = false;
-	}
-
-	if (e.code === 'KeyR' && !(!state.currentLevel || gameUiDiv.classList.contains('hidden') || !state.currentLevel || state.currentLevel.paused || state.currentLevel.finishTime)) {
-		state.currentLevel.rewinding = false;
 	}
 });
 

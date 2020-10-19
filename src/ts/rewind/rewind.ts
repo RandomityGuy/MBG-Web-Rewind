@@ -21,9 +21,9 @@ class MissionState {
 
 export class Rewind {
     rewindManager: RewindManager
-    timescale: number = 0.5;
-    frameskip: number = 0;
-    matchfps: true;
+    timescale: number = 1;
+    frameskip: number = 0; // Unused
+    matchfps: boolean;
     previousFrame: Frame;
 
     getPowerupTimeStates() {
@@ -180,7 +180,7 @@ export class Rewind {
         {
             if (this.timescale != 1 || this.frameskip != 0 || this.matchfps)
             {
-                rewindDelta *= this.timescale;
+                rewindDelta *= Math.max(this.timescale,0.1);
                 framedata = this.rewindManager.getNextRewindFrame(rewindDelta);
 
                 if (framedata == null)
