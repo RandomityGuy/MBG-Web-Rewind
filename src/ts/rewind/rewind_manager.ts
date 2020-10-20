@@ -110,6 +110,7 @@ export class RewindManager
         f.trapdoordirs = [...two.trapdoordirs];
         f.trapdoorcontacttime = [...two.trapdoorcontacttime];
         f.trapdoorcompletion = [...two.trapdoorcompletion];
+        f.mpstates = [...two.mpstates];
 
         f.elapsedTime = Util.lerp(one.elapsedTime,two.elapsedTime,ratio);
 

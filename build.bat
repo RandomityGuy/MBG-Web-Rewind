@@ -1,2 +1,2 @@
 npm install
-npm run compile
+npm run watch-fast

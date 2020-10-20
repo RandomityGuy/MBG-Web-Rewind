@@ -3,6 +3,14 @@ import { Util } from "../util";
 import * as THREE from "three";
 import { Quaternion, Vector3 } from "three";
 import { PowerUp } from "../shapes/power_up";
+import { NumberLiteralType } from "typescript";
+
+export interface MPState // So basically interface is struct. good to know ig
+{
+    currentTime: number,
+    targetTime: number,
+    changeTime: number
+}
 
 export class Frame
 {
@@ -15,6 +23,7 @@ export class Frame
     powerup: PowerUp // The powerup stored at that frame in the inventory
     timebonus: number // The time at which a time bonus was picked
     timeSinceLoad: number // the time since the level was loaded
+    mpstates: MPState[] // Stores pathedInterior states
     gemcount: number // Number of gems collected
     gemstates: boolean[] // List of visibilities of gems
     ttstates: number[] // List of times since a time travel was collected
@@ -40,6 +49,7 @@ export class Frame
         retf.powerup = this.powerup;
         retf.timebonus = this.timebonus;
         retf.timeSinceLoad = this.timeSinceLoad;
+        retf.mpstates = [...this.mpstates];
         retf.gemcount = this.gemcount;
         retf.gemstates = [...this.gemstates];
         retf.ttstates = [...this.ttstates];

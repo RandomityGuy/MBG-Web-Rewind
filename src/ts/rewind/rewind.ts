@@ -4,9 +4,10 @@ import { TimeTravel } from "../shapes/time_travel";
 import { PowerUp } from "../shapes/power_up";
 import { LandMine } from "../shapes/land_mine";
 import { TrapDoor } from "../shapes/trap_door";
-import { Frame } from "./frame";
+import { Frame, MPState } from "./frame";
 import { Util } from "../util";
 import { setEmitFlags } from "typescript";
+import { PathedInterior } from "../pathed_interior";
 
 class MissionState {
     gemstates: boolean[] = [];
@@ -127,6 +128,45 @@ export class Rewind {
         }
     }
 
+    getMPStates() {
+        let level = this.rewindManager.level;
+
+        let states: MPState[] = [];
+
+        for (let i = 0; i < level.interiors.length; i++)
+        {
+            let itr = level.interiors[i];
+            if (itr instanceof PathedInterior)
+            {
+                let pi = itr as PathedInterior;
+                states.push({currentTime: pi.currentTime, targetTime: pi.targetTime, changeTime: pi.changeTime});
+            }
+        }
+
+        return states;
+    }
+
+    setMPStates(states: MPState[]) {
+        let level = this.rewindManager.level;
+
+        for (let i = 0; i < level.interiors.length; i++)
+        {
+            let itr = level.interiors[i];
+            if (itr instanceof PathedInterior)
+            {
+                let state = states[0];
+                states.splice(0,1);
+
+                let pi = itr as PathedInterior;
+                pi.currentTime = state.currentTime;
+                pi.targetTime = state.targetTime;
+                pi.changeTime = state.changeTime;
+            }
+        }
+
+        return states;
+    }
+
     getCurrentFrame(ms: number) {
         let marble = this.rewindManager.level.marble;
         let level = this.rewindManager.level;
@@ -154,6 +194,7 @@ export class Rewind {
         f.trapdoorcompletion = missionstate.trapdoorcompletion;
         f.lmstates = missionstate.explosivestates;
         f.timeSinceLoad = level.timeState.timeSinceLoad;
+        f.mpstates = this.getMPStates();
 
         return f;
     }
@@ -259,6 +300,7 @@ export class Rewind {
         level.gemCount = framedata.gemcount;
         
         this.setMissionState(state);
+        this.setMPStates(framedata.mpstates);
 
         //level = framedata.powerup;
         if (level.heldPowerUp == null)
