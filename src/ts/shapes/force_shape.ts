@@ -9,7 +9,7 @@ export abstract class ForceShape extends Shape {
 	/** Creates a cone-shaped force area that widens as it gets farther away its origin. */
 	addConicForce(distance: number, arcangle: number, strength: number) {
 		let semiverticalangle = arcangle/2; // Self explanatory, the semi-vertical angle of the right circular cone
-		let height = distance; // The height of the code
+		let height = distance; // The height of the cone
 		let radius = height * Math.tan(semiverticalangle); // The radius of the cone
 		// Apparently, the tip of the cone in MB is a bit behind the center of the fan,
 		// we are not handling the cases the marble is just a little bit behind the fan, so we must adjust the strength accordingly.
@@ -29,12 +29,12 @@ export abstract class ForceShape extends Shape {
 			let perpendicular = new THREE.Vector3(0, 0, 1); // The normal to the fan
 			perpendicular.applyQuaternion(this.worldOrientation);
 
-			let conetip = this.worldPosition.clone().sub(perpendicular); // The tip of the cone
+			let conetip = this.worldPosition.clone().sub(perpendicular.multiplyScalar(0.7)); // The tip of the cone
 			let vec = marble.body.getPosition().sub(Util.vecThreeToOimo(conetip)); // The vector to the tip of the cone
 			if (vec.length() === 0) return;
 			if (vec.length() > actualDistance) return; // Out distance is greater than the allowed distance, so we stop right here
 
-			// Maximum force is inversely proportional to the distance between the marble and the tip of the cone
+			// Maximum force is proportional to the negative of the distance between the marble and the tip of the cone
 			let maxF = Util.lerp(actualStrength,0,vec.length()/actualDistance);
 
 			// Calculate the angle between the perpendicular and the relative position of the marble to the tip of the cone

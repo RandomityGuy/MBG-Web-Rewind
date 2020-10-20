@@ -77,7 +77,7 @@ export class RewindManager
         f.position = Util.lerpThreeVectors(one.position,two.position,ratio);
         f.rotation = one.rotation.clone().slerp(two.rotation,ratio);
         f.velocity = Util.lerpThreeVectors(one.velocity,two.velocity,ratio);
-        f.spin = Util.lerpThreeVectors(one.velocity,two.velocity,ratio);
+        f.spin = Util.lerpThreeVectors(one.spin,two.spin,ratio);
 
         // Bruh how can we interpolate this
         f.powerup = two.powerup;
