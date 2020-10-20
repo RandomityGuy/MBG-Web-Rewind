@@ -101,6 +101,7 @@ export const gameButtons = {
 	cameraRight: false,
 	freeLook: false,
 	rewind: false,
+	restart: false
 };
 
 export const releaseAllButtons = () => {

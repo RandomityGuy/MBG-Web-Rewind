@@ -26,7 +26,8 @@ interface StorageData {
 			"cameraLeft": string,
 			"cameraRight": string,
 			"freeLook": string,
-			"rewind": string
+			"rewind": string,
+			"restart": string
 		},
 		rewindTimescale: number,
 		rewindQuality: number,
@@ -65,7 +66,8 @@ const DEFAULT_STORAGE_DATA: StorageData = {
 			"cameraLeft": "ArrowLeft",
 			"cameraRight": "ArrowRight",
 			"freeLook": "RMB",
-			"rewind": "KeyR"
+			"rewind": "KeyR",
+			"restart": "KeyT"
 		},
 		rewindTimescale: 1,
 		rewindQuality: 0,
@@ -95,6 +97,7 @@ export abstract class StorageManager {
 			this.data = DEFAULT_STORAGE_DATA;
 		}
 
+		if (!this.data.settings.gameButtonMapping.restart) this.data.settings.gameButtonMapping.restart = 'KeyT';
 		if (!this.data.randomId) this.data.randomId = getRandomId();
 
 		// Setup the IndexedDB
