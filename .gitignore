@@ -5,6 +5,8 @@ todo.txt
 .rpt2_cache
 src/php/leaderboard.json
 src/storage
+src/storage/logs/*
+src/assets/data/missions/custom/*
 **/screenshots
 **/.vscode
 *.code-workspace

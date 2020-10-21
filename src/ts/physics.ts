@@ -6,6 +6,7 @@ import { Interior } from "./interior";
 import { Shape } from "./shape";
 import { Trigger } from "./triggers/trigger";
 import { MARBLE_RADIUS } from "./marble";
+import * as THREE from "three";
 
 interface CollisionCorrectionEvent {
 	fraction: number,
@@ -61,6 +62,15 @@ export class PhysicsHelper {
 	}
 
 	addInterior(interior: Interior) {
+
+		let interiorScale = new THREE.Vector3();
+		interior.worldMatrix.decompose(new THREE.Vector3(),new THREE.Quaternion(),interiorScale);
+
+		if (interiorScale.x == 0 || interiorScale.y == 0 || interiorScale.z == 0) 
+		{
+			return; // Don't want to add buggy geometry
+		}
+
 		this.world.addRigidBody(interior.body);
 
 		if (interior instanceof PathedInterior) {

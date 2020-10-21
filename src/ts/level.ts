@@ -527,7 +527,12 @@ export class Level extends Scheduler {
 		await Util.wait(10);
 		await shape.init(this, element._id);
 		
-		shape.setTransform(MisParser.parseVector3(element.position), MisParser.parseRotation(element.rotation), MisParser.parseVector3(element.scale));
+		// Set the shape's transform
+		let shapePosition = MisParser.parseVector3(element.position);
+		let shapeRotation = MisParser.parseRotation(element.rotation);
+		let shapeScale = MisParser.parseVector3(element.scale);
+		if (shapeScale.equals(new THREE.Vector3(0,0,0))) shapeScale = new THREE.Vector3(0.0001,0.0001,0.0001); // Apparently we still do collide with point sized shapes
+		shape.setTransform(shapePosition, shapeRotation, shapeScale);
 		
 		this.scene.add(shape.group);
 		this.physics.addShape(shape);
@@ -553,6 +558,7 @@ export class Level extends Scheduler {
 	
 	/** Adds a TSStatic (totally static shape) to the world. */
 	async addTSStatic(element: MissionElementTSStatic) {
+		
 		let shape = new Shape();
 		let shapeName = element.shapename.toLowerCase();
 		shape.dtsPath = shapeName.slice(shapeName.indexOf('shapes/'));
@@ -578,7 +584,9 @@ export class Level extends Scheduler {
 		shape.setTransform(MisParser.parseVector3(element.position), MisParser.parseRotation(element.rotation), MisParser.parseVector3(element.scale));
 		
 		this.scene.add(shape.group);
-		this.physics.addShape(shape);
+		
+		if (shape.worldScale.x != 0 && shape.worldScale.y != 0 && shape.worldScale.z != 0)
+			this.physics.addShape(shape);
 	}
 	
 	/** Adds a ParticleEmitterNode to the world. */
@@ -1206,6 +1214,7 @@ export class Level extends Scheduler {
 	addTimeTravelBonus(bonus: number, timeToRevert: number) {
 		if (this.currentTimeTravelBonus === 0) {
 			this.timeState.gameplayClock -= timeToRevert;
+			if (this.timeState.gameplayClock < 0) this.timeState.gameplayClock = 0;
 			bonus -= timeToRevert;
 		}
 		
