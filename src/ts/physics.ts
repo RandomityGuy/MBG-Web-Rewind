@@ -1,12 +1,12 @@
 import { Level, PHYSICS_TICK_RATE } from "./level";
 import { PathedInterior } from "./pathed_interior";
 import OIMO from "./declarations/oimo";
+import * as THREE from "three";
 import { Util } from "./util";
 import { Interior } from "./interior";
 import { Shape } from "./shape";
 import { Trigger } from "./triggers/trigger";
 import { MARBLE_RADIUS } from "./marble";
-import * as THREE from "three";
 
 interface CollisionCorrectionEvent {
 	fraction: number,
@@ -62,15 +62,6 @@ export class PhysicsHelper {
 	}
 
 	addInterior(interior: Interior) {
-
-		let interiorScale = new THREE.Vector3();
-		interior.worldMatrix.decompose(new THREE.Vector3(),new THREE.Quaternion(),interiorScale);
-
-		if (interiorScale.x == 0 || interiorScale.y == 0 || interiorScale.z == 0) 
-		{
-			return; // Don't want to add buggy geometry
-		}
-
 		this.world.addRigidBody(interior.body);
 
 		if (interior instanceof PathedInterior) {
@@ -181,7 +172,6 @@ export class PhysicsHelper {
 				// If we hit a pathed interior, we position both the marble and the interior at the predicted point of impact and then run a simulation step.
 				let intPos = Util.vecThreeToOimo(collisionEvent.interior.prevPosition).add(collisionEvent.interiorMovement.scale(collisionEvent.fraction));
 				collisionEvent.interior.body.setPosition(intPos);
-				collisionEvent.interior.group.position.copy(Util.vecOimoToThree(intPos));
 
 				let marblePos = collisionEvent.position.add(collisionEvent.interiorMovement.scale(collisionEvent.fraction));
 				this.level.marble.body.setPosition(marblePos);

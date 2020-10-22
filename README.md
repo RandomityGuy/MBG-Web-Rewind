@@ -2,8 +2,7 @@
 This implements rewinding capabilities to the MBG Web Port located [here](https://github.com/Vanilagy/MarbleBlast)
 
 ## Currently Implemented Features
-- Rewind support for marble, all collectibles, timer, shape animations, all hazards, gravity
-- Partial support for moving platforms (non-triggerred moving platforms will work fine)
+- Rewind support for marble, all collectibles, timer, shape animations, all hazards, gravity, moving platforms
 - Rewind timescaling
 
 ## Usage

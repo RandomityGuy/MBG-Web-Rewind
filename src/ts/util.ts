@@ -430,6 +430,24 @@ export abstract class Util {
 
 		return -1;
 	}
+	
+	/** Returns true iff the supplied index is part of a string literal. */
+	static indexIsInStringLiteral(str: string, index: number, strLiteralToken = '"') {
+		let inString = false;
+		for (let i = 0; i < str.length; i++) {
+			let c = str[i];
+
+			if (inString) {
+				if (i === index) return true;
+				if (c === strLiteralToken && str[i-1] !== '\\') inString = false;
+				continue;
+			}
+
+			if (c === strLiteralToken) inString = true;
+		}
+
+		return false;
+	}
 
 	/** Reorders an array with the given index map. */
 	static remapIndices<T>(arr: T[], indices: number[]) {
@@ -451,6 +469,41 @@ export abstract class Util {
 	static normalizeString(str: string) {
 		// https://stackoverflow.com/questions/990904/remove-accents-diacritics-in-a-string-in-javascript
 		return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+	}
+	
+	/** Gets the last item in an array. */
+	static last<T>(arr: T[]) {
+		return arr[arr.length - 1];
+	}
+
+	static isSafari() {
+		return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+	}
+
+	static download(url: string, filename: string) {
+		let element = document.createElement('a');
+		element.setAttribute('href', url);
+		element.setAttribute('download', filename);
+		
+		element.style.display = 'none';
+		document.body.appendChild(element);
+		
+		element.click();
+		
+		document.body.removeChild(element);
+	}
+	
+	/** Removes all characters from a string that aren't letters or digits. */
+	static removeSpecialChars(str: string) {
+		let regex = /[^\w\d]/gi;
+		let match: RegExpExecArray = null;
+
+		while ((match = regex.exec(str)) !== null) {
+			str = str.slice(0, match.index) + str.slice(match.index + match[0].length);
+			regex.lastIndex -= match[0].length;
+		}
+
+		return str;
 	}
 }
 

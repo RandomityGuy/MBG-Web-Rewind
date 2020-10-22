@@ -154,7 +154,7 @@ export class Shape {
 	async init(level?: Level, id = 0) {
 		this.id = id;
 		this.level = level;
-		this.dts = await DtsParser.loadFile('./assets/data/' + this.dtsPath);
+		this.dts = await ((this.level)? this.level.mission.getDts('data/' + this.dtsPath) : DtsParser.loadFile('./assets/data/' + this.dtsPath));
 		this.directoryPath = this.dtsPath.slice(0, this.dtsPath.lastIndexOf('/'));
 
 		this.group = new THREE.Group();
@@ -322,7 +322,7 @@ export class Shape {
 
 			if (this.level && this.useInstancing) {
 				// Count how many shapes of the same type there are.
-				let instanceCount = this.level?.shapes.filter(x => x.constructor === this.constructor).length ?? 0;
+				let instanceCount = this.level?.shapes.filter(x => x.constructor === this.constructor && x.shareId === this.shareId).length ?? 0;
 	
 				// We know there will be one mesh per static geometry and dynamic geometry, so we create the appropriate amount of InstancedMeshes here.
 				for (let geometry of staticGeometries.concat(dynamicGeometries)) {

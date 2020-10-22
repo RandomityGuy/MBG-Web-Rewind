@@ -2,7 +2,7 @@
 <html lang="en">
 	<head>
 		<meta charset="utf-8">
-		<title>Marble Blast Gold</title>
+		<title>Marble Blast Gold Web</title>
 		<meta name="description" content="Race your marble to the finish in 100 diverse levels. A full web port of Marble Blast Gold by GarageGames.">
 		<meta name="keywords" content="marble, blast, gold, marbleblast, marbleblastgold, garagegames, torque">
 		<meta name="author" content="Vanilagy">
@@ -96,7 +96,7 @@
 
 		<div id="menu" class="hidden">
 			<img src="./assets/ui/background.jpg" id="background-image">
-			<p id="version">MBGW v1.3.1</p>
+			<p id="version">MBGW v1.4.0</p>
 
 			<div id="home-screen">
 				<img src="./assets/ui/home/homegui.png">
@@ -125,19 +125,19 @@
 							<div></div>
 							<img src="./assets/ui/play/goldscore.png">
 							<div></div>
-							<img src="./assets/img/round_videocam_black_18dp.png">
+							<img src="./assets/img/round_videocam_black_18dp.png" title="Alt-Click to download">
 						</div>
 						<div class="level-select-best-time" id="level-select-best-time-2">
 							<div></div>
 							<img src="./assets/ui/play/goldscore.png">
 							<div></div>
-							<img src="./assets/img/round_videocam_black_18dp.png">
+							<img src="./assets/img/round_videocam_black_18dp.png" title="Alt-Click to download">
 						</div>
 						<div class="level-select-best-time" id="level-select-best-time-3">
 							<div></div>
 							<img src="./assets/ui/play/goldscore.png">
 							<div></div>
-							<img src="./assets/img/round_videocam_black_18dp.png">
+							<img src="./assets/img/round_videocam_black_18dp.png" title="Alt-Click to download">
 						</div>
 						<p id="online-leaderboard-heading">Online Leaderboard:</p>
 						<div id="leaderboard-scores"></div>
@@ -155,6 +155,7 @@
 				<img src="./assets/ui/play/prev_n.png" id="level-select-prev">
 				<img src="./assets/ui/play/play_n.png" id="level-select-play">
 				<img src="./assets/ui/play/next_n.png" id="level-select-next">
+				<img src="./assets/img/round_play_circle_outline_black_18dp.png" id="load-replay-button" title="Load replay from file">
 			</div>
 
 			<div id="loading" class="hidden">
@@ -327,11 +328,13 @@
 					<img src="./assets/ui/options/graf32bt_n.png" id="graphics-depth32">
 					<img src="./assets/ui/options/graf_chkbx_n.png" id="graphics-shadows">
 					<img src="./assets/ui/options/grafapply_n.png" id="graphics-apply">
-					<div id="graphics-marble-texture-heading">Custom Marble Texture</div>
+					<div id="graphics-marble-texture-heading">Custom Marble Texture:</div>
 					<img src="./assets/ui/options/cntr_cam_up_n.png" id="graphics-marble-texture-choose">
 					<div id="graphics-marble-texture-choose-text">Choose</div>
 					<img src="./assets/ui/options/cntr_cam_dwn_n.png" id="graphics-marble-texture-reset">
 					<div id="graphics-marble-texture-reset-text">Reset</div>
+					<p id="graphics-reflective-marble-heading">Reflective Marble:</p>
+					<img src="./assets/ui/options/cntrl_mous_freel_d.png" id="graphics-reflective-marble">
 				</div>
 
 				<div id="options-audio">

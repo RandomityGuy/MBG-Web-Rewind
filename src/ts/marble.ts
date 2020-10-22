@@ -150,6 +150,13 @@ export class Marble {
 		this.slidingSound.node.loop = true;
 
 		await Promise.all([this.rollingSound.promise, this.slidingSound.promise]);
+
+		if (StorageManager.data.settings.reflectiveMarble) {
+			// Add environment map reflection to the marble
+			sphere.material.envMap = this.level.envMap;
+			sphere.material.combine = THREE.MixOperation;
+			sphere.material.reflectivity = 0.15;
+		}
 	}
 
 	tick(time: TimeState) {
@@ -172,13 +179,31 @@ export class Marble {
 		// Try to find a touching contact
 		let current = this.body.getContactLinkList();
 		let touching: OIMO.ContactLink;
+		let allContactNormals: OIMO.Vec3[] = []; // Keep a list of all contact normals here
 		while (current) {
 			let contact = current.getContact();
-			if (contact.isTouching()) touching = current;
+			if (contact.isTouching()) {
+				touching = current;
+				
+				// Update the contact to fix artifacts
+				let contact = current.getContact();
+				contact._updateManifold();
+				contact._postSolve();
+
+				let contactNormal = contact.getManifold().getNormal();
+				let surfaceShape = contact.getShape2();
+				if (surfaceShape === this.shape) {
+					// Invert the normal based on shape order
+					contactNormal = contactNormal.scale(-1);
+					surfaceShape = contact.getShape1();
+				}
+
+				allContactNormals.push(contactNormal);
+			}
 
 			current = current.getNext();
 		}
-		current = touching; // Take the last touching contact
+		current = touching; // Take the last touching contact. Only doing collision logic with one contact normal might seem questionable, but keep in mind that there almost always will be only one.
 
 		// The axis of rotation (for angular velocity) is the cross product of the current up vector and the movement vector, since the axis of rotation is perpendicular to both.
 		let movementRotationAxis = this.level.currentUp.cross(Util.vecThreeToOimo(movementVec));
@@ -186,18 +211,11 @@ export class Marble {
 		this.collisionTimeout--;
 
 		if (current) {
-			// Update the contact to fix artifacts
 			let contact = current.getContact();
-			contact._updateManifold();
-			contact._postSolve();
-
-			let contactNormal = contact.getManifold().getNormal();
+			//let contactNormal = contact.getManifold().getNormal();
 			let surfaceShape = contact.getShape2();
-			if (surfaceShape === this.shape) {
-				// Invert the normal based on shape order
-				contactNormal = contactNormal.scale(-1);
-				surfaceShape = contact.getShape1();
-			}
+			if (surfaceShape === this.shape) surfaceShape = contact.getShape1();
+			let contactNormal = Util.last(allContactNormals);
 			this.lastContactNormal = contactNormal;
 			let inverseContactNormal = contactNormal.scale(-1);
 
@@ -210,16 +228,20 @@ export class Marble {
 			contactNormalRotation.setArc(this.level.currentUp, contactNormal);
 			movementRotationAxis.mulMat3Eq(contactNormalRotation.toMat3());
 
-			// Implements sliding: If we hit the surface at an angle below 45°, and move in that approximate direction, we don't bounce.
-			let dot0 = -contactNormal.dot(this.lastVel.clone().normalize());
-			if (dot0 > 0.001 && Math.asin(dot0) <= Math.PI/4 && movementVec.length() > 0 && movementVec.dot(Util.vecOimoToThree(this.lastVel)) > 0) {
-				dot0 = contactNormal.dot(this.body.getLinearVelocity().clone().normalize());
+			let lastSurfaceRelativeVelocity = this.lastVel.sub(surfaceShape.getRigidBody().getLinearVelocity());
+			let surfaceRelativeVelocity = this.body.getLinearVelocity().sub(surfaceShape.getRigidBody().getLinearVelocity());
+			let maxDotSlide = 0.5; // 30°
+
+			// Implements sliding: If we hit the surface at an angle below 45°, and have movement keys pressed, we don't bounce.
+			let dot0 = -contactNormal.dot(lastSurfaceRelativeVelocity.clone().normalize());
+			if (dot0 > 0.001 && dot0 <= maxDotSlide && movementVec.length() > 0) {
+				let dot = contactNormal.dot(this.body.getLinearVelocity());
 				let linearVelocity = this.body.getLinearVelocity();
-				this.body.addLinearVelocity(contactNormal.scale(-dot0 * linearVelocity.length()));
+				let originalLength = linearVelocity.length();
+				linearVelocity.addEq(contactNormal.scale(-dot)); // Remove all velocity in the direction of the surface normal
 
 				let newLength = this.body.getLinearVelocity().length();
-				let diff = linearVelocity.length() - newLength;
-				linearVelocity = this.body.getLinearVelocity();
+				let diff = originalLength - newLength;
 				linearVelocity.normalize().scaleEq(newLength + diff * 2); // Give a small speedboost
 
 				this.body.setLinearVelocity(linearVelocity);
@@ -250,7 +272,9 @@ export class Marble {
 				collisionTimeoutNeeded = true;
 			}
 
-			if (this.collisionTimeout <= 0 && (gameButtons.jump || this.level.jumpQueued) && contactNormalUpDot > 1e-10) {
+			// See if, out of all contact normals, there is one that's not at a 90° angle to the up vector.
+			let allContactNormalUpDots = allContactNormals.map(x => Math.abs(x.dot(this.level.currentUp)));
+			if (this.collisionTimeout <= 0 && (gameButtons.jump || this.level.jumpQueued) && allContactNormalUpDots.find(x => x > 1e-10)) {
 				// Handle jumping
 				this.setLinearVelocityInDirection(contactNormal, this.jumpImpulse + surfaceShape.getRigidBody().getLinearVelocity().dot(contactNormal), true, () => {
 					this.playJumpSound();
@@ -275,7 +299,6 @@ export class Marble {
 			}
 
 			// Handle rolling and sliding sounds
-			let surfaceRelativeVelocity = this.body.getLinearVelocity().sub(surfaceShape.getRigidBody().getLinearVelocity());
 			if (contactNormal.dot(surfaceRelativeVelocity) < 0.01) {
 				let predictedMovement = this.body.getAngularVelocity().cross(this.level.currentUp).scale(1 / Math.PI / 2);
 				// The expected movement based on the current angular velocity. If actual movement differs too much, we consider the marble to be "sliding".

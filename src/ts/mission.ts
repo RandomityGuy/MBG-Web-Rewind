@@ -2,6 +2,7 @@ import { MissionElementSimGroup, MisParser, MissionElementType, MissionElementSc
 import { ResourceManager } from "./resources";
 import { DifParser, DifFile } from "./parsing/dif_parser";
 import { Util } from "./util";
+import { DtsFile, DtsParser } from "./parsing/dts_parser";
 
 /** A custom levels archive entry. */
 export interface CLAEntry {
@@ -31,7 +32,6 @@ export class Mission {
 	id: number;
 	/** The string used for searching missions. */
 	searchString: string;
-
 	title: string;
 	artist: string;
 	description: string;
@@ -41,6 +41,7 @@ export class Mission {
 	type: 'beginner' | 'intermediate' | 'advanced' | 'custom' = 'custom';
 	zipDirectory: JSZip = null;
 	fileToBlobPromises = new Map<JSZip['files'][number], Promise<Blob>>();
+	difCache = new Map<string, Promise<DifFile>>();
 
 	constructor(path: string, misFile?: MisFile) {
 		this.path = path;
@@ -115,8 +116,18 @@ export class Mission {
 
 		// Set up some metadata
 		let missionInfo = this.root.elements.find(x => x._type === MissionElementType.ScriptObject && x._name === "MissionInfo") as MissionElementScriptObject;
-		if (missionInfo?.time && missionInfo.time !== "0") this.qualifyTime = MisParser.parseNumber(missionInfo.time);
-		if (missionInfo?.goldtime) this.goldTime = MisParser.parseNumber(missionInfo.goldtime), this.hasGoldTime = true;
+		if (missionInfo?.time) {
+			this.qualifyTime = MisParser.parseNumber(missionInfo.time);
+			if (!this.qualifyTime) this.qualifyTime = Infinity; // Catches both 0 and NaN cases
+		}
+		if (missionInfo?.goldtime) {
+			this.goldTime = MisParser.parseNumber(missionInfo.goldtime);
+			this.hasGoldTime = true;
+			if (!this.goldTime) { // Again, catches both 0 and NaN cases
+				this.hasGoldTime = false;
+				this.goldTime = 0;
+			}
+		}
 	}
 
 	/** Gets the path of the image of a mission. */
@@ -148,18 +159,46 @@ export class Mission {
 		if (path.includes('interiors_mbg/')) path = path.replace('interiors_mbg/', 'interiors/');
 
 		let dif: DifFile = null;
+		if (this.difCache.get(path)) dif = await this.difCache.get(path); // We've already parsed the dif before
+		else {
+			let promise = new Promise<DifFile>(async (resolve) => {
+				let dif: DifFile;
+
+				if (this.zipDirectory && this.zipDirectory.files[path]) {
+					// Get it from the zip
+					let arrayBuffer = await this.zipDirectory.files[path].async('arraybuffer');
+					let parser = new DifParser(arrayBuffer);
+					let result = parser.parse();
+					dif = result;
+				} else {
+					dif = await DifParser.loadFile('./assets/' + path);
+				}
+
+				resolve(dif);
+			});
+
+			this.difCache.set(path, promise);
+			dif = await promise;
+		}
+
+		return { dif, path };
+	}
+
+	/** Gets a DTS file from the mission resources. */
+	async getDts(path: string) {
+		let dts: DtsFile = null;
 
 		if (this.zipDirectory && this.zipDirectory.files[path]) {
 			// Get it from the zip
 			let arrayBuffer = await this.zipDirectory.files[path].async('arraybuffer');
-			let parser = new DifParser(arrayBuffer);
+			let parser = new DtsParser(arrayBuffer);
 			let result = parser.parse();
-			dif = result;
+			dts = result;
 		} else {
-			dif = await DifParser.loadFile('./assets/' + path);
+			dts = await DtsParser.loadFile('./assets/' + path);
 		}
 
-		return { dif, path };
+		return dts;
 	}
 
 	/** Same as `ResourceManager.getFullNamesOf`, but including custom mission resources. */

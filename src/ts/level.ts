@@ -46,6 +46,7 @@ import { Replay } from "./replay";
 import { getCurrentLevelArray } from "./ui/level_select";
 import { Mission } from "./mission";
 import { PushButton } from "./shapes/push_button";
+import { DifFile } from "./parsing/dif_parser";
 
 /** How often the physics will be updated, per second. */
 export const PHYSICS_TICK_RATE = 120;
@@ -116,6 +117,7 @@ export class Level extends Scheduler {
 	particles: ParticleManager;
 	marble: Marble;
 	interiors: Interior[] = [];
+	sharedInteriorData = new Map<DifFile["detailLevels"][number], any>();
 	triggers: Trigger[] = [];
 	
 	shapes: Shape[] = [];
@@ -443,9 +445,7 @@ export class Level extends Scheduler {
 			let pathedInterior = await PathedInterior.createFromSimGroup(simGroup, this);
 			if (!pathedInterior) return;
 			
-			this.scene.add(pathedInterior.group);
-			this.physics.addInterior(pathedInterior);
-			this.interiors.push(pathedInterior);
+			if (pathedInterior.hasCollision) this.physics.addInterior(pathedInterior);
 			for (let trigger of pathedInterior.triggers) this.triggers.push(trigger);
 			
 			return;
@@ -484,12 +484,25 @@ export class Level extends Scheduler {
 		if (!difFile) return;
 		
 		let interior = new Interior(difFile, path, this);
-		await interior.init();
-		interior.setTransform(MisParser.parseVector3(element.position), MisParser.parseRotation(element.rotation), MisParser.parseVector3(element.scale));
-		
-		this.scene.add(interior.group);
-		this.physics.addInterior(interior);
 		this.interiors.push(interior);
+
+		await Util.wait(10); // See shapes for the meaning of this hack
+		await interior.init();
+
+		let interiorPosition = MisParser.parseVector3(element.position);
+		let interiorRotation = MisParser.parseRotation(element.rotation);
+		let interiorScale = MisParser.parseVector3(element.scale);
+		let hasCollision = interiorScale.x !== 0 && interiorScale.y !== 0 && interiorScale.z !== 0; // Don't want to add buggy geometry
+
+		// Fix zero-volume interiors so they receive correct lighting
+		if (interiorScale.x === 0) interiorScale.x = 0.0001;
+		if (interiorScale.y === 0) interiorScale.y = 0.0001;
+		if (interiorScale.z === 0) interiorScale.z = 0.0001;
+
+		interior.setTransform(interiorPosition, interiorRotation, interiorScale);
+
+		//this.scene.add(interior.group);
+		if (hasCollision) this.physics.addInterior(interior);
 	}
 	
 	async addShape(element: MissionElementStaticShape | MissionElementItem) {
@@ -531,7 +544,12 @@ export class Level extends Scheduler {
 		let shapePosition = MisParser.parseVector3(element.position);
 		let shapeRotation = MisParser.parseRotation(element.rotation);
 		let shapeScale = MisParser.parseVector3(element.scale);
-		if (shapeScale.equals(new THREE.Vector3(0,0,0))) shapeScale = new THREE.Vector3(0.0001,0.0001,0.0001); // Apparently we still do collide with point sized shapes
+
+		// Apparently we still do collide with zero-volume shapes
+		if (shapeScale.x === 0) shapeScale.x = 0.0001;
+		if (shapeScale.y === 0) shapeScale.y = 0.0001;
+		if (shapeScale.z === 0) shapeScale.z = 0.0001;
+
 		shape.setTransform(shapePosition, shapeRotation, shapeScale);
 		
 		this.scene.add(shape.group);
@@ -557,11 +575,13 @@ export class Level extends Scheduler {
 	}
 	
 	/** Adds a TSStatic (totally static shape) to the world. */
-	async addTSStatic(element: MissionElementTSStatic) {
-		
+	async addTSStatic(element: MissionElementTSStatic) {		
 		let shape = new Shape();
 		let shapeName = element.shapename.toLowerCase();
-		shape.dtsPath = shapeName.slice(shapeName.indexOf('shapes/'));
+		let index = shapeName.indexOf('data/');
+		if (index === -1) return;
+
+		shape.dtsPath = shapeName.slice(index + 'data/'.length);
 		shape.isTSStatic = true;
 		shape.shareId = 1;
 		shape.useInstancing = true; // We can safely instance all TSStatics
@@ -584,9 +604,7 @@ export class Level extends Scheduler {
 		shape.setTransform(MisParser.parseVector3(element.position), MisParser.parseRotation(element.rotation), MisParser.parseVector3(element.scale));
 		
 		this.scene.add(shape.group);
-		
-		if (shape.worldScale.x != 0 && shape.worldScale.y != 0 && shape.worldScale.z != 0)
-			this.physics.addShape(shape);
+		if (shape.worldScale.x !== 0 && shape.worldScale.y !== 0 && shape.worldScale.z !== 0) this.physics.addShape(shape); // Only add the shape if it actually has any volume
 	}
 	
 	/** Adds a ParticleEmitterNode to the world. */
@@ -761,16 +779,6 @@ export class Level extends Scheduler {
 		// The camera is translated up a bit so it looks "over" the marble
 		let cameraVerticalTranslation = new THREE.Vector3(0, 0, 0.3);
 		
-		if (this.replay.mode === 'playback') {
-			let indexLow = Math.max(0, this.replay.currentTickIndex - 1);
-			let indexHigh = this.replay.currentTickIndex;
-			
-			// Smoothly interpolate pitch and yaw between the last two keyframes
-			this.pitch = Util.lerp(this.replay.cameraOrientations[indexLow].pitch, this.replay.cameraOrientations[indexHigh].pitch, timeState.physicsTickCompletion);
-			this.pitch = Math.max(-Math.PI/2 + Math.PI/4, Math.min(Math.PI/2 - 0.0001, this.pitch)); // This bounds thing might have gotten inaccurate in the conversion from float64 to float32, so do it here again
-			this.yaw = Util.lerp(this.replay.cameraOrientations[indexLow].yaw, this.replay.cameraOrientations[indexHigh].yaw, timeState.physicsTickCompletion);
-		}
-		
 		if (this.finishTime) {
 			// Make the camera spin around slowly
 			this.pitch = Util.lerp(this.finishPitch, DEFAULT_PITCH, Util.clamp((timeState.currentAttemptTime - this.finishTime.currentAttemptTime) / 333, 0, 1));
@@ -943,7 +951,6 @@ export class Level extends Scheduler {
 				this.marble.shape.setFriction(1);
 			}
 			
-
 			if (gameButtons.cameraLeft) this.yaw += 1.5 / PHYSICS_TICK_RATE;
 			if (gameButtons.cameraRight) this.yaw -= 1.5 / PHYSICS_TICK_RATE;
 			if (gameButtons.cameraUp) this.pitch -= 1.5 / PHYSICS_TICK_RATE;
@@ -1076,8 +1083,8 @@ export class Level extends Scheduler {
 				let first = spawnPoints.elements[0] as MissionElementTrigger;
 				position = MisParser.parseVector3(first.position);
 			} else {
-				// If there isn't anything, start at the origin
-				position = new THREE.Vector3();
+				// If there isn't anything, start at this weird point
+				position = new THREE.Vector3(0, 0, 300);
 			}
 		}
 		
@@ -1090,7 +1097,7 @@ export class Level extends Scheduler {
 	}
 	
 	onMouseMove(e: MouseEvent) {
-		if (!document.pointerLockElement || this.finishTime || this.paused || this.replay.mode === 'playback') return;
+		if (!document.pointerLockElement || this.finishTime || this.paused) return;
 		
 		// temp
 		let totalDistance = Math.hypot(e.movementX, e.movementY);
@@ -1186,14 +1193,20 @@ export class Level extends Scheduler {
 		// this.setPowerUpPreview(this.heldPowerUp);
 	}
 	
-	pickUpGem() {
+	pickUpGem(gem: Gem) {
 		this.gemCount++;
 		let string: string;
 		
-		// Show a notification (and sound) based on the gems remaining
+		// Show a notification (and play a sound) based on the gems remaining
 		if (this.gemCount === this.totalGems) {
 			string = "You have all the gems, head for the finish!";
 			AudioManager.play('gotallgems.wav');
+						
+			// Some levels with this package end immediately upon collection of all gems
+			if (this.mission.misFile.activatedPackages.includes('endWithTheGems')) {
+				let completionOfImpact = this.physics.computeCompletionOfImpactWithBody(gem.bodies[0], 2); // Get the exact point of impact
+				this.touchFinish(completionOfImpact);
+			}
 		} else {
 			string = "You picked up a gem.  ";
 			
@@ -1232,39 +1245,46 @@ export class Level extends Scheduler {
 		setCenterText('outofbounds');
 		AudioManager.play('whoosh.wav');
 		
-		this.oobSchedule = this.schedule(this.timeState.currentAttemptTime + 2000, () => this.restart());
+		if (this.replay.mode !== 'playback')  this.oobSchedule = this.schedule(this.timeState.currentAttemptTime + 2000, () => this.restart());
 	}
 	
-	touchFinish() {
+	touchFinish(completionOfImpactOverride?: number) {
 		// Allow finishing with less than half a second of having been OOB
 		if (this.finishTime !== null || (this.outOfBounds && this.timeState.currentAttemptTime - this.outOfBoundsTime.currentAttemptTime >= 500)) return;
-		
+
 		this.replay.recordTouchFinish();
-		
-		if (this.gemCount < this.totalGems) {
+
+		if (completionOfImpactOverride === undefined && this.gemCount < this.totalGems) {
 			AudioManager.play('missinggems.wav');
 			displayAlert("You can't finish without all the gems!!");
 		} else {
-			// The level was completed! Store the time of finishing. Like with start pads, use the last end pad.
-			let finishAreaShape = Util.findLast(this.shapes, (shape) => shape instanceof EndPad).colliders[0].body.getShapeList();
-			let completionOfImpact = this.physics.computeCompletionOfImpactWithShapes(new Set([finishAreaShape]), 1);
+			// The level was completed!
+
+			let completionOfImpact: number;
+			if (completionOfImpactOverride === undefined) {
+				// Compute the time of finishing. Like with start pads, use the last end pad.
+				let finishAreaShape = Util.findLast(this.shapes, (shape) => shape instanceof EndPad).colliders[0].body.getShapeList();
+				completionOfImpact = this.physics.computeCompletionOfImpactWithShapes(new Set([finishAreaShape]), 1);
+			} else {
+				completionOfImpact = completionOfImpactOverride;
+			}
 			let toSubtract = (1 - completionOfImpact) * 1000 / PHYSICS_TICK_RATE;
-			
+
 			this.finishTime = Util.jsonClone(this.timeState);
 			// Compute the precise finish time here
 			this.finishTime.timeSinceLoad -= toSubtract;
 			this.finishTime.currentAttemptTime -= toSubtract;
 			if (this.currentTimeTravelBonus === 0) this.finishTime.gameplayClock -= toSubtract;
 			this.finishTime.physicsTickCompletion = completionOfImpact;
-			
+
 			if (this.replay.mode === 'playback') this.finishTime = this.replay.finishTime;
-			
+
 			this.finishYaw = this.yaw;
 			this.finishPitch = this.pitch;
-			
-			let endPad = this.shapes.find((shape) => shape instanceof EndPad) as EndPad;
-			endPad.spawnFirework(this.timeState);
-			
+
+			let endPad = Util.findLast(this.shapes, (shape) => shape instanceof EndPad) as EndPad;
+			endPad?.spawnFirework(this.timeState); // EndPad *might* not exist, in that case no fireworks lol
+
 			this.clearSchedule();
 			if (this.replay.mode !== 'playback') this.schedule(this.timeState.currentAttemptTime + 2000, () => {
 				// Show the finish screen
