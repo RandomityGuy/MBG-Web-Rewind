@@ -361,6 +361,7 @@ export class RewindManager
         // Conditionally remove those whose ticks are in the future
         replay.marbleInside = removeConditional(replay.marbleInside,idx);
         replay.marbleEnter = removeConditional(replay.marbleEnter,idx);
+        replay.marbleLeave = removeConditional(replay.marbleLeave,idx);
         replay.marbleContact = removeConditional(replay.marbleContact,idx);
         replay.uses = removeConditional(replay.uses,idx);
 

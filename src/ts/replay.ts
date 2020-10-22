@@ -308,8 +308,8 @@ export class Replay {
 		this.level.marble.body.setOrientation(this.marbleOrientations[i]);
 		this.level.marble.body.setLinearVelocity(this.marbleLinearVelocities[i]);
 		this.level.marble.body.setAngularVelocity(this.marbleAngularVelocities[i]);
-		this.level.yaw = this.cameraOrientations[i].yaw;
-		this.level.pitch = this.cameraOrientations[i].pitch;
+		// this.level.yaw = this.cameraOrientations[i].yaw;
+		// this.level.pitch = this.cameraOrientations[i].pitch;
 
 		for (let i = this.currentJumpSoundTime; i < this.jumpSoundTimes.length; i++) {
 			if (this.jumpSoundTimes[i] > this.currentTickIndex) break;
