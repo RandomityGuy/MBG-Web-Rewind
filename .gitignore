@@ -6,6 +6,7 @@ todo.txt
 src/php/leaderboard.json
 src/storage
 src/storage/logs/*
+src/python/__pycache__
 src/assets/data/missions/custom/*
 **/screenshots
 **/.vscode

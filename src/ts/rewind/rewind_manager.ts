@@ -358,6 +358,15 @@ export class RewindManager
             return newArr;
         }
 
+        function removeConditional2(arr: any[],n: number) {
+            let newArr = [];
+            for (let element of arr)
+            {
+                if (element < n) newArr.push(element);
+            }
+            return newArr;
+        }
+
         // Conditionally remove those whose ticks are in the future
         replay.marbleInside = removeConditional(replay.marbleInside,idx);
         replay.marbleEnter = removeConditional(replay.marbleEnter,idx);
@@ -369,7 +378,7 @@ export class RewindManager
         replay.rollingSoundGain = replay.rollingSoundGain.slice(0,idx);
         replay.rollingSoundPlaybackRate = replay.rollingSoundPlaybackRate.slice(0,idx);
         replay.slidingSoundGain = replay.slidingSoundGain.slice(0,idx);
-        replay.jumpSoundTimes = replay.jumpSoundTimes.slice(0,idx);
+        replay.jumpSoundTimes = removeConditional2(replay.jumpSoundTimes,idx);
 
         replay.bounceTimes = removeConditional(replay.bounceTimes,idx);
 
