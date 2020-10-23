@@ -10,6 +10,7 @@ import { StorageManager } from "../storage";
 import { Mission, CLAEntry } from "../mission";
 import { SerializedReplay, Replay } from "../replay";
 import { executeOnWorker } from "../worker";
+import { Leaderboards } from "../leaderboards";
 
 export const beginnerLevels: Mission[] = [];
 export const intermediateLevels: Mission[] = [];
@@ -177,7 +178,7 @@ export const initLevelSelect = async () => {
 	selectTab('intermediate');
 	selectTab('beginner');
 
-	updateOnlineLeaderboard();
+	// updateOnlineLeaderboard();
 
 	for (let elem of [bestTime1.children[3], bestTime2.children[3], bestTime3.children[3]]) {
 		let replayButton = elem as HTMLImageElement;
@@ -263,6 +264,14 @@ const displayMission = () => {
 
 		levelNumberElement.textContent = `${Util.uppercaseFirstLetter(mission.type)} Level ${currentLevelIndex + 1}`;
 	}
+
+	let lbdata = Leaderboards.get_scores(mission.path)
+	.then( (val) =>
+	{
+		onlineLeaderboard = {};
+		onlineLeaderboard[mission.path] = val;
+		displayBestTimes();
+	});
 
 	setImages();
 	updateNextPrevButtons();

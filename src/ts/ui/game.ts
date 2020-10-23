@@ -6,6 +6,7 @@ import { GO_TIME } from "../level";
 import { StorageManager } from "../storage";
 import { ResourceManager } from "../resources";
 import { AudioManager } from "../audio";
+import { Leaderboards } from "../leaderboards";
 
 export const gameUiDiv = document.querySelector('#game-ui') as HTMLDivElement;
 export const gemCountElement = document.querySelector('#gem-count') as HTMLDivElement;
@@ -47,7 +48,7 @@ export const stopAndExit = () => {
 	finishScreenDiv.classList.add('hidden');
 	cycleMission(0); // Make sure to reload the current level to potentially update best times having changed
 	startMenuMusic();
-	updateOnlineLeaderboard();
+	// updateOnlineLeaderboard();
 	document.exitPointerLock();
 };
 
@@ -361,7 +362,8 @@ setupButton(nameEntryButton, 'common/ok', () => {
 	let level = state.currentLevel;
 	StorageManager.data.lastUsedName = trimmed;
 	let newScoreId = StorageManager.insertNewTime(level.mission.path, trimmed, level.finishTime.gameplayClock);
-	updateOnlineLeaderboard();
+	Leaderboards.post_score(level.mission.path,trimmed,level.finishTime.gameplayClock);
+	// updateOnlineLeaderboard();
 
 	nameEntryScreenDiv.classList.add('hidden');
 	drawBestTimes();
