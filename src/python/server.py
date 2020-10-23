@@ -27,6 +27,17 @@ def assets(varargs):
     with open(path,"rb") as f:
         return f.read();
 
+@app.route('/bundles/<path:varargs>')
+def bundles(varargs):
+    varargs = varargs.split('/');
+    path = os.path.join(main_path,"bundles",*varargs);
+    with open(path,"rb") as f:
+        if (".js" in path):
+            return Response(f.read(),mimetype = "application/javascript");
+        if (".css" in path):
+            return Response(f.read(),mimetype = "text/css");            
+        return f.read();
+
 @app.route('/css/<path:varargs>')
 def css(varargs):
     varargs = varargs.split('/');
