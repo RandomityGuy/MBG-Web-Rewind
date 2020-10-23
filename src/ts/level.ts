@@ -245,6 +245,7 @@ export class Level extends Scheduler {
 		
 		this.restart();
 		for (let shape of this.shapes) await shape.onLevelStart();
+		AudioManager.normalizePositionalAudioVolume();
 		
 		this.updateCamera(this.timeState); // Ensure that the camera is positioned correctly before the first tick for correct positional audio playback
 		this.render(); // This will also do a tick
@@ -585,11 +586,7 @@ export class Level extends Scheduler {
 		shape.isTSStatic = true;
 		shape.shareId = 1;
 		shape.useInstancing = true; // We can safely instance all TSStatics
-		if (shapeName.includes('colmesh')) {
-			// Special cases for colmesh
-			shape.ignoreNodeRotation = true; // A bit hacky but does it for now
-			shape.receiveShadows = false;
-		}
+		if (shapeName.includes('colmesh')) shape.receiveShadows = false; // Special case for colmesh
 		
 		this.shapes.push(shape);
 		await Util.wait(10); // Same hack as for regular shapes

@@ -194,7 +194,7 @@
 #graphics-marble-texture-heading {
 	font-family: 'DomCasualRegular';
 	position: absolute;
-	top: 60px;
+	top: 200px;
 	left: 478px;
 	font-size: 24px;
 	white-space: nowrap;
@@ -202,14 +202,14 @@
 
 #graphics-marble-texture-choose {
 	position: absolute;
-	top: 91px;
+	top: 231px;
 	left: 475px;
 	filter: hue-rotate(-50deg);
 }
 
 #graphics-marble-texture-choose-text {
 	position: absolute;
-	top: 96px;
+	top: 236px;
 	left: 505px;
 	font-size: 20px;
 	font-family: 'DomCasualRegular';
@@ -218,13 +218,13 @@
 
 #graphics-marble-texture-reset {
 	position: absolute;
-	top: 90px;
+	top: 230px;
 	left: 590px;
 }
 
 #graphics-marble-texture-reset-text {
 	position: absolute;
-	top: 96px;
+	top: 236px;
 	left: 624px;
 	font-size: 20px;
 	font-family: 'DomCasualRegular';
@@ -234,7 +234,7 @@
 #graphics-reflective-marble-heading {
 	position: absolute;
     left: 478px;
-    top: 147px;
+    top: 287px;
     margin: 0;
     white-space: nowrap;
     font-family: 'DomCasualRegular';
@@ -243,7 +243,7 @@
 
 #graphics-reflective-marble {
 	position: absolute;
-    top: 131px;
+    top: 271px;
     left: 644px;
 }
 
