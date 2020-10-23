@@ -108,8 +108,8 @@ def get_scores(mission,count):
 def save_score(mission,username,score):
     lb = sqlite3.connect(os.path.join(main_path,'storage','leaderboards.db'));
     cur = lb.cursor();
-    res = cur.execute("SELECT username,score FROM scores WHERE (mission=? AND username=?);",(mission,username));
-    if (res.rowcount <= 0):
+    res = cur.execute("SELECT username,score FROM scores WHERE (mission=? AND username=?);",(mission,username)).fetchall();
+    if (len(res) <= 0):
         cur.execute("INSERT INTO scores VALUES(?,?,?);",(mission,score,username));
     else:
         cur.execute("UPDATE scores SET score=? WHERE (mission=? AND username=?);",(score,mission,username));

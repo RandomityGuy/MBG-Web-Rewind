@@ -12,6 +12,8 @@ import { SerializedReplay, Replay } from "../replay";
 import { executeOnWorker } from "../worker";
 import { Leaderboards } from "../leaderboards";
 
+export const CLA_ENABLED = false;
+
 export const beginnerLevels: Mission[] = [];
 export const intermediateLevels: Mission[] = [];
 export const advancedLevels: Mission[] = [];
@@ -122,8 +124,12 @@ export const initLevelSelect = async () => {
 		promises.push(MisParser.loadFile("./assets/data/missions/" + filename));
 	}
 
-	// Get the list of all custom levels in the CLA
-	let customLevelListPromise = ResourceManager.loadResource('./assets/cla_list.json');
+	let customLevelListPromise: Promise<Blob> = null;
+	if (CLA_ENABLED)
+	{
+		// Get the list of all custom levels in the CLA
+		customLevelListPromise = ResourceManager.loadResource('./assets/cla_list.json');
+	}
 
 	let misFiles = await Promise.all(promises);
 	let misFileToFilename = new Map<MisFile, string>();
@@ -147,14 +153,16 @@ export const initLevelSelect = async () => {
 		missions.push(mission);
 	}
 
-	// Read the custom level list and filter it
-	let customLevelList = JSON.parse(await ResourceManager.readBlobAsText(await customLevelListPromise)) as CLAEntry[];
-	customLevelList = customLevelList.filter(x => x.modification === 'gold' && x.gameType.toLowerCase() === 'single player');
-
-	// Create all custom missions
-	for (let custom of customLevelList) {
-		let mission = Mission.fromCLAEntry(custom);
-		missions.push(mission);
+	if (CLA_ENABLED)
+	{
+		// Read the custom level list and filter it
+		let customLevelList = JSON.parse(await ResourceManager.readBlobAsText(await customLevelListPromise)) as CLAEntry[];
+		customLevelList = customLevelList.filter(x => x.modification === 'gold' && x.gameType.toLowerCase() === 'single player');
+		// Create all custom missions
+		for (let custom of customLevelList) {
+			let mission = Mission.fromCLAEntry(custom);
+			missions.push(mission);
+		}
 	}
 
 	// Sort the missions into the correct array
@@ -263,15 +271,15 @@ const displayMission = () => {
 		clearImageTimeout = setTimeout(() => levelImage.src = '', 50) as any as number;
 
 		levelNumberElement.textContent = `${Util.uppercaseFirstLetter(mission.type)} Level ${currentLevelIndex + 1}`;
-	}
 
-	let lbdata = Leaderboards.get_scores(mission.path)
-	.then( (val) =>
-	{
-		onlineLeaderboard = {};
-		onlineLeaderboard[mission.path] = val;
-		displayBestTimes();
-	});
+		let lbdata = Leaderboards.get_scores(mission.path)
+		.then( (val) =>
+		{
+			onlineLeaderboard = {};
+			onlineLeaderboard[mission.path] = val;
+			displayBestTimes();
+		});
+	}
 
 	setImages();
 	updateNextPrevButtons();
