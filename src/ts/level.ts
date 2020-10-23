@@ -708,6 +708,10 @@ export class Level extends Scheduler {
 		{
 			setCenterText('none');
 		}
+		if (this.outOfBounds)
+		{
+			setCenterText('outofbounds');
+		}
 	}
 	
 	render() {
@@ -1000,7 +1004,7 @@ export class Level extends Scheduler {
 			this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(this.deltaMs)); // bruh timescale breaks down if this is in physics tick
 		}
 		
-		if (this.rewinding && !playReplay)
+		if (this.rewinding && !playReplay && this.finishTime === null)
 		{
 			this.rewind.rewindFrame(null);
 			this.updateUI();
