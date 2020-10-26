@@ -6,6 +6,7 @@ import io;
 import json;
 import datetime;
 import sqlite3;
+import sheetsupdater;
 
 main_path = os.path.abspath(".");
 
@@ -234,3 +235,8 @@ def update_leaderboard():
 
 if (not os.path.isfile(os.path.join(main_path,"storage","leaderboards.db"))):
     setup_db();
+
+
+@app.route("/lbs/data")
+def get_lb_sheet():
+    return sheetsupdater.get_data();
