@@ -1,5 +1,5 @@
 import { setupButton } from "./ui";
-import { levelSelectDiv, hiddenUnlocker, updateOnlineLeaderboard } from "./level_select";
+import { levelSelectDiv, hiddenUnlocker } from "./level_select";
 import { helpDiv, showHelpPage, initHelpScenes } from "./help";
 import { optionsDiv } from "./options";
 

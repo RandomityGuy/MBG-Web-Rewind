@@ -6,14 +6,12 @@ import io;
 import json;
 import datetime;
 import sqlite3;
-from flask_cors import CORS
 
 main_path = os.path.abspath(".");
 
 USE_PROXY_ASSETS = True;
 
 app = Flask(__name__,static_folder="",template_folder=main_path);
-CORS(app);
 
 @app.route('/')
 def main():

@@ -5,7 +5,6 @@ import { setupButton } from "./ui";
 import { Util } from "../util";
 import { homeScreenDiv } from "./home";
 import { loadLevel } from "./loading";
-import { secondsToTimeString } from "./game";
 import { StorageManager } from "../storage";
 import { Mission, CLAEntry } from "../mission";
 import { SerializedReplay, Replay } from "../replay";
@@ -263,7 +262,7 @@ const displayMission = () => {
 		levelArtist.style.display = (mission.type === 'custom')? 'block' : 'none'; // Only show the artist for custom levels
 		levelDescription.textContent = mission.description;
 		let qualifyTime = (mission.qualifyTime !== 0)? mission.qualifyTime : Infinity;
-		levelQualifyTime.textContent = isFinite(qualifyTime)? "Time to Qualify: " + secondsToTimeString(qualifyTime / 1000) : '';
+		levelQualifyTime.textContent = isFinite(qualifyTime)? "Time to Qualify: " + Util.secondsToTimeString(qualifyTime / 1000) : '';
 
 		// Display best times
 		displayBestTimes();
@@ -398,15 +397,15 @@ const displayBestTimes = () => {
 	let bestTimes = StorageManager.getBestTimesForMission(mission?.path);
 	bestTime1.children[0].textContent = '1. ' + bestTimes[0][0];
 	(bestTime1.children[1] as HTMLImageElement).style.opacity = (bestTimes[0][1] <= goldTime)? '' : '0';
-	bestTime1.children[2].textContent = secondsToTimeString(bestTimes[0][1] / 1000);
+	bestTime1.children[2].textContent = Util.secondsToTimeString(bestTimes[0][1] / 1000);
 	updateReplayButton(0);
 	bestTime2.children[0].textContent = '2. ' + bestTimes[1][0];
 	(bestTime2.children[1] as HTMLImageElement).style.opacity = (bestTimes[1][1] <= goldTime)? '' : '0';
-	bestTime2.children[2].textContent = secondsToTimeString(bestTimes[1][1] / 1000);
+	bestTime2.children[2].textContent = Util.secondsToTimeString(bestTimes[1][1] / 1000);
 	updateReplayButton(1);
 	bestTime3.children[0].textContent = '3. ' + bestTimes[2][0];
 	(bestTime3.children[1] as HTMLImageElement).style.opacity = (bestTimes[2][1] <= goldTime)? '' : '0';
-	bestTime3.children[2].textContent = secondsToTimeString(bestTimes[2][1] / 1000);
+	bestTime3.children[2].textContent = Util.secondsToTimeString(bestTimes[2][1] / 1000);
 	updateReplayButton(2);
 
 	leaderboardScores.innerHTML = '';
@@ -430,7 +429,7 @@ const displayBestTimes = () => {
 			element.appendChild(img);
 
 			let time = document.createElement('div');
-			time.textContent = secondsToTimeString(achievedTime / 1000, 3);
+			time.textContent = Util.secondsToTimeString(achievedTime / 1000, 3);
 			element.appendChild(time);
 
 			leaderboardScores.appendChild(element);
@@ -503,34 +502,6 @@ hiddenUnlocker.addEventListener('mousedown', () => {
 
 // The second value in the tuple can be number or string - number for legacy reasons.
 let onlineLeaderboard: Record<string, [string, number | string][]> = {};
-export const updateOnlineLeaderboard = async () => {
-	let postData = {
-		randomId: StorageManager.data.randomId,
-		bestTimes: {} as Record<string, [string, string]>,
-		version: 1
-	};
-
-	// Add all personal best times to the payload
-	for (let path in StorageManager.data.bestTimes) {
-		let val = StorageManager.data.bestTimes[path as keyof typeof StorageManager.data.bestTimes];
-		if (val[0][0]) postData.bestTimes[path] = [val[0][0], val[0][1].toString()]; // Convert the time to string to avoid precision loss in transfer
-	}
-
-	try {
-		let response = await fetch('./php/update_leaderboard.php', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify(postData)
-		});
-		if (response.ok) {
-			let json = await response.json();
-			onlineLeaderboard = json;
-			displayBestTimes(); // Refresh best times
-		}
-	} catch (e) {}
-};
 
 /** The current words in the search query. Used for matching. */
 let currentQueryWords: string[] = [];
@@ -574,10 +545,13 @@ const selectBasedOnSearchQuery = (display = true) => {
 const downloadReplay = async (replayData: ArrayBuffer, mission: Mission) => {
 	let uncompressed = pako.inflate(new Uint8Array(replayData), { to: 'string' });
 	
-	// This is a bit unfortunate, but we'd like to bundle the mission path with the replay, but the first replay version didn't include it. So we need to check if the replay actually includes the mission path, which we can check by checking if it includes the "version" field.
+	// This is a bit unfortunate, but we'd like to bundle the mission path with the replay, but the first replay version didn't include it. So we need to check if the replay actually includes the mission path, which we can check by checking if it includes the "version" field. We then upgrade the replay to verion 1.
 	if (!uncompressed.includes('"version"')) {
 		let json = JSON.parse(uncompressed) as SerializedReplay;
-		json.missionPath = mission.path; // Assign the mission path
+		// Upgrade to version 1
+		json.missionPath = mission.path;
+		json.timestamp = 0;
+		json.version = 1;
 
 		let compressed = await executeOnWorker('compress', JSON.stringify(json)) as ArrayBuffer;
 		replayData = compressed;

@@ -260,6 +260,7 @@ export class Rewind {
         }
 
         level.currentTimeTravelBonus = framedata.timebonus;
+        level.maxDisplayedTime = framedata.ms;
         level.timeState.currentAttemptTime = framedata.elapsedTime;
         level.timeState.gameplayClock = framedata.ms;
         level.timeState.timeSinceLoad = framedata.timeSinceLoad;

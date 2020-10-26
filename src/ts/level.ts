@@ -62,6 +62,7 @@ const SHAPE_OVERLAY_OFFSETS = {
 export const GO_TIME = 3500;
 /** Default camera pitch */
 const DEFAULT_PITCH = 0.45;
+const MAX_TIME = 999 * 60 * 1000 + 59 * 1000 + 999; // 999:59.99, should be large enough
 
 /** The map used to get particle emitter options for a ParticleEmitterNode. */
 const particleEmitterMap: Record<string, ParticleEmitterOptions> = {
@@ -141,6 +142,8 @@ export class Level extends Scheduler {
 	finishTime: TimeState = null;
 	finishYaw: number;
 	finishPitch: number;
+	/** The maximum time that has been displayed in the current attempt. */
+	maxDisplayedTime = 0;
 	
 	pitch = 0;
 	yaw = 0;
@@ -620,6 +623,7 @@ export class Level extends Scheduler {
 		this.outOfBounds = false;
 		this.oobSchedule = -1;
 		this.lastPhysicsTick = null;
+		this.maxDisplayedTime = 0;
 		
 		if (this.totalGems > 0) {
 			this.gemCount = 0;
@@ -766,7 +770,17 @@ export class Level extends Scheduler {
 		renderer.render(this.overlayScene, orthographicCamera);
 		renderer.autoClear = true;
 		
-		displayTime((this.finishTime ?? tempTimeState).gameplayClock / 1000);
+		// This might seem a bit strange, but the time we display is actually a few milliseconds in the PAST (unless the user is currently in TT or has finished), for the reason that time was able to go backwards upon finishing or collecting TTs due to CCD time correction. That felt wrong, so we accept this inaccuracy in displaying time for now.
+		let timeToDisplay = tempTimeState.gameplayClock;
+		if (this.finishTime) timeToDisplay = this.finishTime.gameplayClock;
+		if (this.currentTimeTravelBonus === 0 && !this.finishTime) timeToDisplay = Math.max(timeToDisplay - 1000 / PHYSICS_TICK_RATE, 0);
+		if (!this.rewinding) {
+
+			this.maxDisplayedTime = Math.max(timeToDisplay, this.maxDisplayedTime);
+		}
+		if (this.currentTimeTravelBonus === 0 && !this.finishTime) timeToDisplay = this.maxDisplayedTime;
+		timeToDisplay = Math.min(timeToDisplay, MAX_TIME);
+		displayTime(timeToDisplay / 1000);
 		
 		requestAnimationFrame(() => this.render());
 	}
@@ -1276,6 +1290,7 @@ export class Level extends Scheduler {
 			this.finishTime.timeSinceLoad -= toSubtract;
 			this.finishTime.currentAttemptTime -= toSubtract;
 			if (this.currentTimeTravelBonus === 0) this.finishTime.gameplayClock -= toSubtract;
+			this.finishTime.gameplayClock = Math.min(this.finishTime.gameplayClock, MAX_TIME); // Apply the time cap
 			this.finishTime.physicsTickCompletion = completionOfImpact;
 
 			if (this.replay.mode === 'playback') this.finishTime = this.replay.finishTime;
