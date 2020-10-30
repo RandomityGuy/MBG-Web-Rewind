@@ -12,7 +12,7 @@ import { executeOnWorker } from "../worker";
 import { Leaderboards } from "../leaderboards";
 import { previousButtonState } from "../input";
 
-export const CLA_ENABLED = false;
+export const CLA_ENABLED = true;
 
 export const beginnerLevels: Mission[] = [];
 export const intermediateLevels: Mission[] = [];

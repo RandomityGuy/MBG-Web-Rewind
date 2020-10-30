@@ -76,8 +76,12 @@ def get_directory_structure():
 @app.route('/php/get_custom_level_bitmap.php')
 def get_custom_level_bitmap():
     id = request.args.get('id');
-    url = f"https://cla.higuy.me/api/v1/missions/{id}/bitmap?width=258&height=194"
-    return Response(requests.get(url).content,headers={"Content-Type":'Content-Type: image/jpeg'});
+    url = f"https://cors-anywhere.herokuapp.com/marbleblast.vani.ga/php/get_custom_level_bitmap.php?id={id}";
+    redir = redirect(url);
+    redir.headers["X-Requested-With"] = "http://mbgwrewind.pythonanywhere.com";
+    return redir;
+    # url = f"https://cla.higuy.me/api/v1/missions/{id}/bitmap?width=258&height=194"
+    # return Response(requests.get(url).content,headers={"Content-Type":'Content-Type: image/jpeg'});
 
 def setup_db():
     lb = sqlite3.connect(os.path.join(main_path,'storage','leaderboards.db'));
@@ -155,8 +159,9 @@ def get_custom_level():
         return;
     
     if (USE_PROXY_ASSETS):
-        resp = requests.get(f"http://marbleblast.vani.ga/php/get_custom_level.php?id={id}");
-        return resp.content;
+        resp = redirect(f"https://cors-anywhere.herokuapp.com/marbleblast.vani.ga/php/get_custom_level.php?id={id}");
+        resp.headers["X-Requested-With"] = "http://mbgwrewind.pythonanywhere.com";
+        return resp;
     
     if (not os.path.isdir(os.path.join(main_path,'storage','customs'))):
         os.mkdir(os.path.join(main_path,'storage','customs'));

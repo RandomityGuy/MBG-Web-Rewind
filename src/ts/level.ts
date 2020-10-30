@@ -184,6 +184,9 @@ export class Level extends Scheduler {
 	
 	deltaMs: number; // Why isnt this stored anywhere
 	oobSchedule: number;
+
+	// Replay controls
+	isReplayPaused: boolean = false;
 	
 	constructor(mission: Mission) {
 		super();
@@ -936,6 +939,7 @@ export class Level extends Scheduler {
 		let tickDone = false;
 		// Make sure to execute the correct amount of ticks
 		while (elapsed >= 1000 / PHYSICS_TICK_RATE) {
+			let timestate = [this.timeState.currentAttemptTime,this.timeState.gameplayClock,this.timeState.physicsTickCompletion];
 
 			if (!this.rewinding && !playReplay)
 			{
@@ -1033,11 +1037,38 @@ export class Level extends Scheduler {
 					this.currentTimeTravelBonus = 0;
 				}
 			}
+
+			// if (playReplay && isPressed("jump")) {
+			// 	this.isReplayPaused = true;
+			// }
 			
 			// Record or playback the replay
 			if (!playReplay) this.replay.record();
 			else {
+				let tickindex = this.replay.currentTickIndex;
 				this.replay.playback();
+
+				if (this.isReplayPaused) {
+					this.replay.currentTickIndex = tickindex;
+					this.timeState.currentAttemptTime = timestate[1];
+					this.timeState.gameplayClock = timestate[1];
+					this.timeState.physicsTickCompletion = timestate[2];
+
+					if (isPressed("right")) {
+						this.replay.currentTickIndex++;
+						this.timeState.timeSinceLoad += 1000 / PHYSICS_TICK_RATE;
+						this.timeState.currentAttemptTime += 1000 / PHYSICS_TICK_RATE
+						timestate = [this.timeState.currentAttemptTime,this.timeState.gameplayClock,this.timeState.physicsTickCompletion];
+					}
+					if (isPressed("left")) {
+						this.replay.currentTickIndex--;
+						this.timeState.timeSinceLoad -= 1000 / PHYSICS_TICK_RATE;
+						this.timeState.currentAttemptTime -= 1000 / PHYSICS_TICK_RATE;
+						timestate = [this.timeState.currentAttemptTime,this.timeState.gameplayClock,this.timeState.physicsTickCompletion];
+					}
+
+				}
+
 				if (this.replay.isPlaybackComplete()) {
 					stopAndExit();
 					return;
