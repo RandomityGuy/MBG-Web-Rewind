@@ -345,7 +345,8 @@ export class Replay {
 
 		// First, create a more compact object by utilizing typed arrays.
 		let serialized: SerializedReplay = {
-			version: 2,
+			version: 3,
+			game: "Rewind",
 			timestamp: Date.now(),
 			missionPath: this.missionPath,
 			marblePositions: Util.arrayBufferToString(Replay.vec3sToBuffer(this.marblePositions).buffer),
@@ -383,6 +384,7 @@ export class Replay {
 		let string = pako.inflate(new Uint8Array(buf), { to: 'string' });
 		let serialized = JSON.parse(string) as SerializedReplay;
 		let version = serialized.version ?? 0;
+		let game = (version >= 3) ? serialized.game : "Rewind";
 		
 		replay.missionPath = (version >= 1)? serialized.missionPath : null;
 		replay.timestamp = (version >= 1)? serialized.timestamp : 0;
@@ -475,6 +477,7 @@ export class Replay {
 export interface SerializedReplay {
 	/** The version of the replay, used for compatibility. */
 	version: number,
+	game: string,
 	missionPath: string,
 	timestamp: number,
 	
