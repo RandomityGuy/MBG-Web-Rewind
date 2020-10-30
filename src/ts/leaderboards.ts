@@ -1,3 +1,5 @@
+import { Replay } from "./replay";
+import { ResourceManager } from "./resources";
 import { StorageManager } from "./storage";
 
 export class Leaderboards
@@ -28,7 +30,7 @@ export class Leaderboards
     }
 
     static async upload_top_replay(mission: string, score: number, replayId: string) {
-        var scores = await this.get_scores(mission,1);
+        let scores = await this.get_scores(mission,1);
         if (scores[0]?.[1] >= score) {
 
             let replayData = await StorageManager.databaseGet('replays', replayId) as ArrayBuffer;
@@ -42,5 +44,26 @@ export class Leaderboards
                 body: replayData
              } );            
         }
+    }
+
+    static async get_top_replay(mission: string) {
+        let resp = await fetch(`./leaderboards/replay?mission=${decodeURIComponent(mission)}`, {
+            method: "GET"
+        });
+
+        let file = await resp.blob();
+
+        let arrayBuffer = await ResourceManager.readBlobAsArrayBuffer(file);
+
+        return arrayBuffer;
+    }
+
+    static async has_top_replay(mission: string) {
+        let resp = await fetch(`./leaderboards/has_replay?mission=${decodeURIComponent(mission)}`, {
+            method: "GET"
+        });
+        let t = await resp.text();
+        if (t === "true") return true;
+        else return false;
     }
 }

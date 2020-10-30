@@ -132,6 +132,19 @@ def upload_top_replay(mission,time,replaydata):
     cur.close();
     lb.close();
 
+def get_top_replay(mission):
+    lb = sqlite3.connect(os.path.join(main_path,'storage','leaderboards.db'));
+    cur = lb.cursor();
+    res = cur.execute("SELECT replay FROM topreplays WHERE mission=?",(mission,)).fetchall();
+    if (len(res) > 0):
+        cur.close();
+        lb.close();
+        return res[0];
+    else:
+        cur.close();
+        lb.close();
+        return None;
+
 
 @app.route('/php/get_custom_level.php')
 def get_custom_level():
@@ -262,6 +275,25 @@ def upload_replay():
         return "OK", 200;
 
     return "ERR", 400;
+
+@app.route("/leaderboards/replay", methods = [ 'GET' ])
+def get_replay():
+    mission = request.args.get('mission');
+    topreplay = get_top_replay(mission);
+    if (topreplay == None):
+        return abort(404);
+    else:
+        return Response(topreplay,headers={ "Content-Type": 'application/octet-stream' });
+
+
+@app.route("/leaderboards/has_replay", methods = [ 'GET' ])
+def has_replay():
+    mission = request.args.get('mission');
+    topreplay = get_top_replay(mission);
+    if (topreplay == None):
+        return "false";
+    else:
+        return "true";
 
 
 @app.route("/lbs/data")

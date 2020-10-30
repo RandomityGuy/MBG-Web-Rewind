@@ -433,6 +433,37 @@ const displayBestTimes = () => {
 			time.textContent = Util.secondsToTimeString(achievedTime / 1000, 3);
 			element.appendChild(time);
 
+			if (i === 0) {
+				Leaderboards.has_top_replay(mission?.path).then(hasReplay => {
+					if (hasReplay) {
+						let replayButton = document.createElement('img');
+						replayButton.src = './assets/img/round_videocam_black_18dp.png';
+						replayButton.style.display = 'block';
+						element.appendChild(replayButton);
+
+
+						replayButton.addEventListener('click', async (e) => {
+							if (e.button !== 0) return;
+							let mission = currentLevelArray[currentLevelIndex];
+							if (!mission) return;								
+				
+							let replayData = await Leaderboards.get_top_replay(mission?.path);
+							if (!replayData) return;
+
+							playCurrentLevel(replayData);
+				
+						});
+				
+						replayButton.addEventListener('mouseenter', () => {
+							AudioManager.play('buttonover.wav');
+						});
+						replayButton.addEventListener('mousedown', (e) => {
+							if (e.button === 0) AudioManager.play('buttonpress.wav');
+						});
+					}
+				});
+			}
+
 			leaderboardScores.appendChild(element);
 
 			i++;
