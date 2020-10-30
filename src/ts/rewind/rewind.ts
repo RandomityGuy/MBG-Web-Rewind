@@ -158,9 +158,13 @@ export class Rewind {
                 states.splice(0,1);
 
                 let pi = itr as PathedInterior;
-                pi.currentTime = state.currentTime;
+
                 pi.targetTime = state.targetTime;
-                pi.changeTime = state.changeTime;
+
+                //if (pi.targetTime != -1) {
+                    pi.changeTime = state.changeTime;
+                    pi.currentTime = state.currentTime;
+                //}
             }
         }
 
@@ -195,6 +199,7 @@ export class Rewind {
         f.lmstates = missionstate.explosivestates;
         f.timeSinceLoad = level.timeState.timeSinceLoad;
         f.mpstates = this.getMPStates();
+        f.physicsTime = level.timeState.physicsTickCompletion;
 
         return f;
     }
@@ -256,6 +261,7 @@ export class Rewind {
         }
         else
         {
+            if (this.previousFrame == null) return; // Rip us, if this ever happens
             framedata = this.previousFrame.clone();
         }
 
@@ -264,6 +270,7 @@ export class Rewind {
         level.timeState.currentAttemptTime = framedata.elapsedTime;
         level.timeState.gameplayClock = framedata.ms;
         level.timeState.timeSinceLoad = framedata.timeSinceLoad;
+        level.timeState.physicsTickCompletion = framedata.physicsTime;
 
         marble.body.setPosition(Util.vecThreeToOimo(framedata.position));
         marble.body.setOrientation(framedata.rotation);

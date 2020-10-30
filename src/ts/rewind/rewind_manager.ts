@@ -1,6 +1,7 @@
 import { Frame } from "./frame"
 import { Util } from "../util"
 import { Level } from "../level";
+import { Replay } from "../replay";
 
 /** Compares two lists and returns whether they are any different */
 function compareListEquality(l1: any[],l2: any[]) {
@@ -383,6 +384,8 @@ export class RewindManager
         replay.bounceTimes = removeConditional(replay.bounceTimes,idx);
 
         replay.currentTickIndex = replay.currentAttemptTimes.length;
+
+        this.level.replay.record();
 
         
     }

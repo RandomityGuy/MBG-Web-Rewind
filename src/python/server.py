@@ -118,7 +118,9 @@ def save_score(mission,username,score):
     if (len(res) <= 0):
         cur.execute("INSERT INTO scores VALUES(?,?,?);",(mission,score,username));
     else:
-        cur.execute("UPDATE scores SET score=? WHERE (mission=? AND username=?);",(score,mission,username));
+        lastscore = res[0][1];
+        if (lastscore > score):
+            cur.execute("UPDATE scores SET score=? WHERE (mission=? AND username=?);",(score,mission,username));
     lb.commit();
     cur.close();
     lb.close();

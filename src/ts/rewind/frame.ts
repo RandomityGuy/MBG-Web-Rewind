@@ -37,6 +37,7 @@ export class Frame
     trapdoorcontacttime: number[] // List of times when a trapdoor was touched
     trapdoorcompletion: number[] // List of trapdoor completions
     elapsedTime: number // same as timeSinceLoad
+    physicsTime: number
 
     clone() {
         let retf = new Frame();
@@ -61,6 +62,7 @@ export class Frame
         retf.trapdoorcontacttime = [...this.trapdoorcontacttime];
         retf.trapdoorcompletion = [...this.trapdoorcompletion];
         retf.elapsedTime = this.elapsedTime;
+        retf.physicsTime = this.physicsTime;
         return retf;
 
     }

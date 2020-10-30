@@ -687,6 +687,7 @@ export class Level extends Scheduler {
 		});
 		
 		this.rewind.rewindManager.clear();
+		this.rewind.previousFrame = null;
 		this.rewinding = false;
 	}
 	
@@ -935,6 +936,19 @@ export class Level extends Scheduler {
 		let tickDone = false;
 		// Make sure to execute the correct amount of ticks
 		while (elapsed >= 1000 / PHYSICS_TICK_RATE) {
+
+			if (!this.rewinding && !playReplay)
+			{
+				// this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(1000 / PHYSICS_TICK_RATE)); // Fair enough, its a constant delta t
+				this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(1 / PHYSICS_TICK_RATE)); // bruh timescale breaks down if this is in physics tick
+			}
+
+			if (this.rewinding && !playReplay && this.finishTime === null)
+			{
+				this.rewind.rewindFrame(null);
+				this.updateUI();
+			}
+
 			// By ticking we advance time, so advance time.
 			this.timeState.timeSinceLoad += 1000 / PHYSICS_TICK_RATE;
 			this.timeState.currentAttemptTime += 1000 / PHYSICS_TICK_RATE;
@@ -946,10 +960,10 @@ export class Level extends Scheduler {
 			
 			for (let shape of this.shapes) if (!shape.isTSStatic) shape.tick(this.timeState);
 			
-			if (!playReplay) {
+			if (!playReplay){
 				// Update pathed interior positions after the physics tick because they will have changed position only after the physics tick was calculated, not during.
 				for (let interior of this.interiors) if (interior instanceof PathedInterior) interior.updatePosition();
-				this.marble.tick(this.timeState);
+				if (!this.rewinding) this.marble.tick(this.timeState);
 			}
 			this.marble.updatePowerUpStates(this.timeState);
 			
@@ -994,16 +1008,6 @@ export class Level extends Scheduler {
 			this.particles.tick();
 			tickDone = true;
 			
-			// Record or playback the replay
-			if (!playReplay) this.replay.record();
-			else {
-				this.replay.playback();
-				if (this.replay.isPlaybackComplete()) {
-					stopAndExit();
-					return;
-				}
-			}
-			
 			// Note: It is incorrect that this TT code here runs after physics and shape updating, it should run at the top of this loop's body. However, changing this code's position now would make all TT catches about ~8 milliseconds later, giving an unfair advantage to those who have already set leaderboard scores using the previous calculation. So, for the sake of score integrity, we're keeping it this way.
 			if (this.timeState.currentAttemptTime >= GO_TIME) {
 				if (this.currentTimeTravelBonus > 0) {
@@ -1029,24 +1033,22 @@ export class Level extends Scheduler {
 					this.currentTimeTravelBonus = 0;
 				}
 			}
+			
+			// Record or playback the replay
+			if (!playReplay) this.replay.record();
+			else {
+				this.replay.playback();
+				if (this.replay.isPlaybackComplete()) {
+					stopAndExit();
+					return;
+				}
+			}
 		}
-		
-		
-		if (!this.rewinding && !playReplay)
-		{
-			// this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(1000 / PHYSICS_TICK_RATE)); // Fair enough, its a constant delta t
-			this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(this.deltaMs)); // bruh timescale breaks down if this is in physics tick
-		}
-		
-		if (this.rewinding && !playReplay && this.finishTime === null)
-		{
-			this.rewind.rewindFrame(null);
-			this.updateUI();
-		}
+	
 		
 		if (this.lastRewinding && !this.rewinding) // We just stopped rewinding, so edit out the replay
 		{
-			this.rewind.rewindManager.spliceReplay(this.timeState.currentAttemptTime);
+			// this.rewind.rewindManager.spliceReplay(this.timeState.currentAttemptTime);
 		}
 		
 		this.lastRewinding = this.rewinding;
