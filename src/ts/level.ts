@@ -1048,7 +1048,7 @@ export class Level extends Scheduler {
 		
 		if (this.lastRewinding && !this.rewinding) // We just stopped rewinding, so edit out the replay
 		{
-			// this.rewind.rewindManager.spliceReplay(this.timeState.currentAttemptTime);
+			this.rewind.rewindManager.spliceReplay(this.timeState.currentAttemptTime);
 		}
 		
 		this.lastRewinding = this.rewinding;

@@ -310,6 +310,11 @@ export class Replay {
 		this.level.marble.body.setOrientation(this.marbleOrientations[i]);
 		this.level.marble.body.setLinearVelocity(this.marbleLinearVelocities[i]);
 		this.level.marble.body.setAngularVelocity(this.marbleAngularVelocities[i]);
+
+		if (this.currentAttemptTimes !== null) {
+			this.level.timeState.currentAttemptTime = this.currentAttemptTimes[i];
+		}
+
 		// this.level.yaw = this.cameraOrientations[i].yaw;
 		// this.level.pitch = this.cameraOrientations[i].pitch;
 
@@ -345,10 +350,11 @@ export class Replay {
 
 		// First, create a more compact object by utilizing typed arrays.
 		let serialized: SerializedReplay = {
-			version: 3,
+			version: 4,
 			game: "Rewind",
 			timestamp: Date.now(),
 			missionPath: this.missionPath,
+			currentAttemptTimes: Util.arrayBufferToString(new Float32Array(this.currentAttemptTimes).buffer),
 			marblePositions: Util.arrayBufferToString(Replay.vec3sToBuffer(this.marblePositions).buffer),
 			marbleOrientations: Util.arrayBufferToString(Replay.quatsToBuffer(this.marbleOrientations).buffer),
 			marbleLinearVelocities: Util.arrayBufferToString(Replay.vec3sToBuffer(this.marbleLinearVelocities).buffer),
@@ -389,6 +395,7 @@ export class Replay {
 		replay.missionPath = (version >= 1)? serialized.missionPath : null;
 		replay.timestamp = (version >= 1)? serialized.timestamp : 0;
 
+		replay.currentAttemptTimes = (version >= 4) ? [...new Float32Array(Util.stringToArrayBuffer(serialized.currentAttemptTimes))] : null;
 		replay.marblePositions = Replay.bufferToVec3s(new Float32Array(Util.stringToArrayBuffer(serialized.marblePositions)));
 		replay.marbleOrientations = Replay.bufferToQuats(new Float32Array(Util.stringToArrayBuffer(serialized.marbleOrientations)));
 		replay.marbleLinearVelocities = Replay.bufferToVec3s(new Float32Array(Util.stringToArrayBuffer(serialized.marbleLinearVelocities)));
@@ -480,7 +487,8 @@ export interface SerializedReplay {
 	game: string,
 	missionPath: string,
 	timestamp: number,
-	
+
+	currentAttemptTimes: string
 	marblePositions: string;
 	marbleOrientations: string;
 	marbleLinearVelocities: string;
