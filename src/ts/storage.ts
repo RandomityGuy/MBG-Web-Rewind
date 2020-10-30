@@ -184,14 +184,6 @@ static async storeBestTimes() {
 	/** Get the three best times for a mission path. */
 	static getBestTimesForMission(path: string) {
 		let result: BestTimes = [];
-		if (this.data.bestTimes === undefined) 
-		{
-			for (let i = 0; i < 3; i++) {
-				// Fill the remaining slots with Nardo Polo scores
-				result.push(["Nardo Polo", MAX_SCORE_TIME, "", 0]);
-			}
-			return result;
-		}
 		let stored = this.data.bestTimes[path];
 		if (stored) {
 			result.push(...stored);
@@ -209,7 +201,6 @@ static async storeBestTimes() {
 
 	/** Register a new time for a mission. */
 	static insertNewTime(path: string, name: string, time: number) {
-		if (this.data.bestTimes == undefined) this.data.bestTimes = {};
 		let stored = this.data.bestTimes[path] ?? [];
 		let scoreId = getRandomId();
 

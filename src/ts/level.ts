@@ -27,14 +27,14 @@ import { TriangleBumper } from "./shapes/triangle_bumper";
 import { Oilslick } from "./shapes/oilslick";
 import { Util, Scheduler } from "./util";
 import { PowerUp } from "./shapes/power_up";
-import { gameButtons, releaseAllButtons } from "./input";
+import { isPressed, releaseAllButtons, gamepadAxes, getPressedFlag, resetPressedFlag } from "./input";
 import { SmallDuctFan } from "./shapes/small_duct_fan";
 import { PathedInterior } from "./pathed_interior";
 import { Trigger } from "./triggers/trigger";
 import { InBoundsTrigger } from "./triggers/in_bounds_trigger";
 import { HelpTrigger } from "./triggers/help_trigger";
 import { OutOfBoundsTrigger } from "./triggers/out_of_bounds_trigger";
-import { displayTime, displayAlert, displayGemCount, gemCountElement, numberSources, setCenterText, displayHelp, showPauseScreen, hidePauseScreen, finishScreenDiv, showFinishScreen, stopAndExit } from "./ui/game";
+import { displayTime, displayAlert, displayGemCount, gemCountElement, numberSources, setCenterText, displayHelp, showPauseScreen, hidePauseScreen, finishScreenDiv, showFinishScreen, stopAndExit, handleFinishScreenGamepadInput } from "./ui/game";
 import { ResourceManager } from "./resources";
 import { AudioManager, AudioSource } from "./audio";
 import { PhysicsHelper } from "./physics";
@@ -779,6 +779,7 @@ export class Level extends Scheduler {
 			this.maxDisplayedTime = Math.max(timeToDisplay, this.maxDisplayedTime);
 		}
 		if (this.currentTimeTravelBonus === 0 && !this.finishTime) timeToDisplay = this.maxDisplayedTime;
+
 		timeToDisplay = Math.min(timeToDisplay, MAX_TIME);
 		displayTime(timeToDisplay / 1000);
 		
@@ -882,28 +883,39 @@ export class Level extends Scheduler {
 		if (time === undefined) time = performance.now();
 		let playReplay = this.replay.mode === 'playback';
 		
-		this.rewinding = gameButtons.rewind;
+		this.rewinding = isPressed('rewind');
 		
-		if (!playReplay && (gameButtons.use || this.useQueued)) {
+		if (!playReplay && (isPressed('use') || this.useQueued) && getPressedFlag('use')) {
 			if (this.outOfBounds && !this.finishTime) {
 				// Skip the out of bounce "animation" and restart immediately
 				this.clearSchedule();
 				this.restart();
 				return;
-			} else if (this.heldPowerUp && document.pointerLockElement) {
+			} else if (this.heldPowerUp) {
 				this.replay.recordUsePowerUp(this.heldPowerUp);
 				this.heldPowerUp.use(this.timeState);
 			}
 		}
 		this.useQueued = false;
 		
+		handleFinishScreenGamepadInput();
+
 		// Handle pressing of the restart button
-		if (!this.finishTime && gameButtons.restart && !this.pressingRestart) {
+		if (!this.finishTime && isPressed('restart') && !this.pressingRestart) {
 			this.restart();
 			this.pressingRestart = true;
 			return;
-		} else if (!gameButtons.restart) {
+		} else if (!isPressed('restart')) {
 			this.pressingRestart = false;
+		}
+		
+		// Handle pressing of the gamepad pause button
+		if (!this.finishTime && isPressed('pause') && getPressedFlag('pause')) {
+			resetPressedFlag('pause');
+			resetPressedFlag('jump');
+			resetPressedFlag('use');
+			resetPressedFlag('restart');
+			this.pause();
 		}
 		
 		if (this.lastPhysicsTick === null) {
@@ -966,10 +978,18 @@ export class Level extends Scheduler {
 				this.marble.shape.setFriction(1);
 			}
 			
-			if (gameButtons.cameraLeft) this.yaw += 1.5 / PHYSICS_TICK_RATE;
-			if (gameButtons.cameraRight) this.yaw -= 1.5 / PHYSICS_TICK_RATE;
-			if (gameButtons.cameraUp) this.pitch -= 1.5 / PHYSICS_TICK_RATE;
-			if (gameButtons.cameraDown) this.pitch += 1.5 / PHYSICS_TICK_RATE;
+			let yawChange = 0.0;
+			let pitchChange = 0.0;
+			if (isPressed('cameraLeft')) yawChange += 1.5;
+			if (isPressed('cameraRight')) yawChange -= 1.5;
+			if (isPressed('cameraUp')) pitchChange -= 1.5;
+			if (isPressed('cameraDown')) pitchChange += 1.5;
+			
+			yawChange -= gamepadAxes.cameraX * 5.0;
+			pitchChange += gamepadAxes.cameraY * 5.0;
+			
+			this.yaw += yawChange / PHYSICS_TICK_RATE;
+			this.pitch += pitchChange / PHYSICS_TICK_RATE;
 			
 			this.particles.tick();
 			tickDone = true;
@@ -1127,7 +1147,7 @@ export class Level extends Scheduler {
 		
 		let factor = Util.lerp(1 / 2500, 1 / 100, StorageManager.data.settings.mouseSensitivity);
 		let yFactor = StorageManager.data.settings.invertYAxis? -1 : 1;
-		let freeLook = StorageManager.data.settings.alwaysFreeLook || gameButtons.freeLook;
+		let freeLook = StorageManager.data.settings.alwaysFreeLook || isPressed('freeLook');
 		
 		if (freeLook) this.pitch += e.movementY * factor * yFactor;
 		this.yaw -= e.movementX * factor;
@@ -1306,6 +1326,9 @@ export class Level extends Scheduler {
 				// Show the finish screen
 				document.exitPointerLock();
 				showFinishScreen();
+				resetPressedFlag('use');
+				resetPressedFlag('jump');
+				resetPressedFlag('restart');
 			});
 			displayAlert("Congratulations! You've finished!");
 		}

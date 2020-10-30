@@ -4,6 +4,7 @@ dist
 todo.txt
 .rpt2_cache
 src/php/leaderboard.json
+src/leaderboards.csv
 src/storage
 src/storage/logs/*
 src/python/__pycache__

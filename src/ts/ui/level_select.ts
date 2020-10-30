@@ -10,6 +10,7 @@ import { Mission, CLAEntry } from "../mission";
 import { SerializedReplay, Replay } from "../replay";
 import { executeOnWorker } from "../worker";
 import { Leaderboards } from "../leaderboards";
+import { previousButtonState } from "../input";
 
 export const CLA_ENABLED = false;
 
@@ -52,7 +53,7 @@ export const getCurrentLevelArray = () => currentLevelArray;
 export const getCurrentLevelIndex = () => currentLevelIndex;
 
 /** Selects a tab and shows the last-unlocked level in it. */
-const selectTab = (which: 'beginner' | 'intermediate' | 'advanced' | 'custom') => {
+export const selectTab = (which: 'beginner' | 'intermediate' | 'advanced' | 'custom') => {
 	for (let elem of [tabBeginner, tabIntermediate, tabAdvanced, tabCustom]) {
 		elem.style.zIndex = "-1";
 	}
@@ -93,7 +94,7 @@ setupButton(homeButton, 'play/back', () => {
 	homeScreenDiv.classList.remove('hidden');
 });
 
-const playCurrentLevel = (replayData?: ArrayBuffer) => {
+export const playCurrentLevel = (replayData?: ArrayBuffer) => {
 	let currentMission = currentLevelArray[currentLevelIndex];
 	if (!currentMission) return;
 
@@ -601,3 +602,42 @@ loadReplayButton.addEventListener('mouseenter', () => {
 loadReplayButton.addEventListener('mousedown', (e) => {
 	if (e.button === 0) AudioManager.play('buttonpress.wav');
 });
+
+
+export const handleLevelSelectControllerInput = (gamepad: Gamepad) => {
+	// A button to play
+	if (gamepad.buttons[0].value > 0.5 && !previousButtonState[0]) {
+		playCurrentLevel();
+		AudioManager.play('buttonpress.wav');
+	}
+	// LT, RT to change category
+	if (gamepad.buttons[6].value > 0.5 && !previousButtonState[6]) {
+		// Should probably have a function for this tbh
+		if (getCurrentLevelArray() === intermediateLevels)
+			selectTab('beginner');
+		else if (getCurrentLevelArray() === advancedLevels)
+			selectTab('intermediate');
+		else if (getCurrentLevelArray() === customLevels)
+			selectTab('advanced');
+		AudioManager.play('buttonpress.wav');
+	}
+	if (gamepad.buttons[7].value > 0.5 && !previousButtonState[7]) {
+		// Should probably have a function for this tbh
+		if (getCurrentLevelArray() === beginnerLevels)
+			selectTab('intermediate');
+		else if (getCurrentLevelArray() === intermediateLevels)
+			selectTab('advanced');
+		else if (getCurrentLevelArray() === advancedLevels)
+			selectTab('custom');
+		AudioManager.play('buttonpress.wav');
+	}
+	// D-pad left+right to change levels
+	if (gamepad.buttons[14].value > 0.5 && !previousButtonState[14]) {
+		cycleMission(-1);
+		AudioManager.play('buttonpress.wav');
+	}
+	if (gamepad.buttons[15].value > 0.5 && !previousButtonState[15]) {
+		cycleMission(1);
+		AudioManager.play('buttonpress.wav');
+	}
+};

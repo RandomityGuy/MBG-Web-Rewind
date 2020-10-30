@@ -83,10 +83,17 @@ def setup_db():
     lb = sqlite3.connect(os.path.join(main_path,'storage','leaderboards.db'));
     cur = lb.cursor();
     cur.execute('''
-    CREATE TABLE scores(
+    CREATE TABLE IF NOT EXISTS scores(
     mission varchar(256),
     score float,
     username varchar(256)
+    );
+    ''');
+    cur.execute('''
+    CREATE TABLE IF NOT EXISTS topreplays(
+    mission varchar(256),
+    score float,
+    replay mediumblob
     );
     ''');
     cur.close();
@@ -112,6 +119,15 @@ def save_score(mission,username,score):
         cur.execute("INSERT INTO scores VALUES(?,?,?);",(mission,score,username));
     else:
         cur.execute("UPDATE scores SET score=? WHERE (mission=? AND username=?);",(score,mission,username));
+    lb.commit();
+    cur.close();
+    lb.close();
+
+def upload_top_replay(mission,time,replaydata):
+    lb = sqlite3.connect(os.path.join(main_path,'storage','leaderboards.db'));
+    cur = lb.cursor();
+    cur.execute("DELETE FROM topreplays WHERE mission=?",(mission,));
+    cur.execute("INSERT INTO topreplays VALUES(?,?,?);",(mission,time,replaydata));
     lb.commit();
     cur.close();
     lb.close();
@@ -233,8 +249,19 @@ def update_leaderboard():
     with open(os.path.join(main_path,'php','leaderboard.json'),'r') as f:
         return jsonify(json.loads(f.read()));
 
-if (not os.path.isfile(os.path.join(main_path,"storage","leaderboards.db"))):
-    setup_db();
+setup_db();
+
+@app.route("/leaderboards/uploadreplay", methods = [ 'POST' ])
+def upload_replay():
+
+    if (request.headers['Content-Type'] == 'application/octet-stream'):
+        replaydata = request.data;
+        mission = request.args.get('mission');
+        time = request.args.get('time');
+        upload_top_replay(mission,time,replaydata);
+        return "OK", 200;
+
+    return "ERR", 400;
 
 
 @app.route("/lbs/data")

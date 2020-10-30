@@ -7,6 +7,7 @@ import { StorageManager } from "../storage";
 import { ResourceManager } from "../resources";
 import { AudioManager } from "../audio";
 import { Leaderboards } from "../leaderboards";
+import { getPressedFlag, resetPressedFlag, isPressedByGamepad, previousButtonState } from "../input";
 
 export const gameUiDiv = document.querySelector('#game-ui') as HTMLDivElement;
 export const gemCountElement = document.querySelector('#gem-count') as HTMLDivElement;
@@ -332,10 +333,10 @@ const drawBestTimes = () => {
 	(bestTime3.children[1] as HTMLParagraphElement).style.textShadow = (bestTimes[2][1] <= goldTime)? '1px 1px 0px black' : '';
 };
 
-const nameEntryScreenDiv = document.querySelector('#name-entry-screen') as HTMLDivElement;
+export const nameEntryScreenDiv = document.querySelector('#name-entry-screen') as HTMLDivElement;
 const nameEntryText = document.querySelector('#name-entry-screen > p:nth-child(3)') as HTMLParagraphElement;
 const nameEntryInput = document.querySelector('#name-entry-input') as HTMLInputElement;
-const nameEntryButton = nameEntryScreenDiv.querySelector('#name-entry-confirm') as HTMLImageElement;
+export const nameEntryButton = nameEntryScreenDiv.querySelector('#name-entry-confirm') as HTMLImageElement;
 
 setupButton(nameEntryButton, 'common/ok', () => {
 	let trimmed = nameEntryInput.value.trim();
@@ -352,19 +353,77 @@ setupButton(nameEntryButton, 'common/ok', () => {
 
 	// Store the time and close the dialog.
 	let level = state.currentLevel;
+	// Store the replay
 	StorageManager.data.lastUsedName = trimmed;
 	let newScoreId = StorageManager.insertNewTime(level.mission.path, trimmed, level.finishTime.gameplayClock);
-	Leaderboards.post_score(level.mission.path,trimmed,level.finishTime.gameplayClock);
-	// updateOnlineLeaderboard();
 
-	nameEntryScreenDiv.classList.add('hidden');
-	drawBestTimes();
-
-	// Store the replay
 	if (level.replay.mode === 'record' && !level.replay.isInvalid) {
 		level.replay.canStore = false;
 		level.replay.serialize().then(e => {
 			StorageManager.databasePut('replays', e, newScoreId);
 		});
 	}
+
+	Leaderboards.post_score(level.mission.path,trimmed,level.finishTime.gameplayClock);
+	Leaderboards.upload_top_replay(level.mission.path,level.finishTime.gameplayClock,newScoreId);
+	// updateOnlineLeaderboard();
+
+	nameEntryScreenDiv.classList.add('hidden');
+	drawBestTimes();
+
+
 });
+
+export const handlePauseScreenGamepadInput = (gamepad: Gamepad) => {
+	// A button to exit
+	if (gamepad.buttons[0].value > 0.5 && !previousButtonState[0]) {
+		stopAndExit();
+		AudioManager.play('buttonpress.wav');
+	}
+	// B button or pause button to continue
+	if (gamepad.buttons[1].value > 0.5 && !previousButtonState[1]) {
+		state.currentLevel.unpause();
+		AudioManager.play('buttonpress.wav');
+	}
+	if (gamepad.buttons[9].value > 0.5 && !previousButtonState[9]) {
+		state.currentLevel.unpause();
+		resetPressedFlag('pause');
+		AudioManager.play('buttonpress.wav');
+	}
+	// Restart button to restart
+	if (gamepad.buttons[8].value > 0.5 && !previousButtonState[8]) {
+		state.currentLevel.unpause();
+		state.currentLevel.restart();
+		state.currentLevel.pressingRestart = true;
+		AudioManager.play('buttonpress.wav');
+	}
+};
+
+export const handleFinishScreenGamepadInput = () => {
+	// If the finish screen is up, handle those buttons ...
+	if (!nameEntryScreenDiv.classList.contains('hidden')) {
+		if (isPressedByGamepad('jump') && getPressedFlag('jump')) {
+			resetPressedFlag('jump');
+			nameEntryButton.click();
+			AudioManager.play('buttonpress.wav');
+		}
+	} else if (!finishScreenDiv.classList.contains('hidden')) {
+		// Check for buttons
+		if (isPressedByGamepad('use') && getPressedFlag('use')) {
+			resetPressedFlag('use');
+			viewReplayButton.click();
+			AudioManager.play('buttonpress.wav');
+		}
+		if (isPressedByGamepad('jump') && getPressedFlag('jump')) {
+			resetPressedFlag('jump');
+			continueButton.click();
+			AudioManager.play('buttonpress.wav');
+			return;
+		}
+		if (isPressedByGamepad('restart') && getPressedFlag('restart')) {
+			resetPressedFlag('restart');
+			replayButton.click();
+			AudioManager.play('buttonpress.wav');
+		}
+	}
+};
