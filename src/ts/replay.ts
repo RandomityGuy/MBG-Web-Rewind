@@ -24,6 +24,8 @@ export class Replay {
 
 	/** The internal timer running since mission load */ // Pls why wasnt this there already, could have sped up replay edits by 10 billion percent
 	currentAttemptTimes: number[] = [];
+	/** The time on the timer */
+	gameClockTimes: number[] = [];
 	/** The position of the marble at each physics tick. */
 	marblePositions: OIMO.Vec3[] = [];
 	/** The orientation of the marble at each physics tick. */
@@ -122,6 +124,7 @@ export class Replay {
 
 			this.canStore = true;
 			this.isInvalid = false;
+			this.gameClockTimes.length = 0;
 			this.currentAttemptTimes.length = 0;
 			this.marblePositions.length = 0;
 			this.marbleOrientations.length = 0;
@@ -197,6 +200,7 @@ export class Replay {
 	record() {
 		if (this.mode === 'playback' || !this.canStore) return;
 
+		this.gameClockTimes.push(this.level.timeState.gameplayClock);
 		this.currentAttemptTimes.push(this.level.timeState.currentAttemptTime);
 		this.marblePositions.push(this.level.marble.body.getPosition());
 		this.marbleOrientations.push(this.level.marble.body.getOrientation());
@@ -315,6 +319,10 @@ export class Replay {
 			this.level.timeState.currentAttemptTime = this.currentAttemptTimes[i];
 		}
 
+		if (this.gameClockTimes !== null) {
+			this.level.timeState.gameplayClock = this.gameClockTimes[i];
+		}
+
 		// this.level.yaw = this.cameraOrientations[i].yaw;
 		// this.level.pitch = this.cameraOrientations[i].pitch;
 
@@ -350,10 +358,11 @@ export class Replay {
 
 		// First, create a more compact object by utilizing typed arrays.
 		let serialized: SerializedReplay = {
-			version: 4,
+			version: 5,
 			game: "Rewind",
 			timestamp: Date.now(),
 			missionPath: this.missionPath,
+			gameClockTimes: Util.arrayBufferToString(new Float32Array(this.gameClockTimes).buffer),
 			currentAttemptTimes: Util.arrayBufferToString(new Float32Array(this.currentAttemptTimes).buffer),
 			marblePositions: Util.arrayBufferToString(Replay.vec3sToBuffer(this.marblePositions).buffer),
 			marbleOrientations: Util.arrayBufferToString(Replay.quatsToBuffer(this.marbleOrientations).buffer),
@@ -395,6 +404,7 @@ export class Replay {
 		replay.missionPath = (version >= 1)? serialized.missionPath : null;
 		replay.timestamp = (version >= 1)? serialized.timestamp : 0;
 
+		replay.gameClockTimes = (version >= 5) ? [...new Float32Array(Util.stringToArrayBuffer(serialized.gameClockTimes))] : null;
 		replay.currentAttemptTimes = (version >= 4) ? [...new Float32Array(Util.stringToArrayBuffer(serialized.currentAttemptTimes))] : null;
 		replay.marblePositions = Replay.bufferToVec3s(new Float32Array(Util.stringToArrayBuffer(serialized.marblePositions)));
 		replay.marbleOrientations = Replay.bufferToQuats(new Float32Array(Util.stringToArrayBuffer(serialized.marbleOrientations)));
@@ -488,6 +498,7 @@ export interface SerializedReplay {
 	missionPath: string,
 	timestamp: number,
 
+	gameClockTimes: string
 	currentAttemptTimes: string
 	marblePositions: string;
 	marbleOrientations: string;

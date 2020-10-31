@@ -343,6 +343,7 @@ export class RewindManager
 
         // Slice off these
         replay.currentAttemptTimes = replay.currentAttemptTimes.slice(0,idx);
+        replay.gameClockTimes = replay.gameClockTimes.slice(0,idx);
         replay.marblePositions = replay.marblePositions.slice(0,idx);
         replay.marbleOrientations = replay.marbleOrientations.slice(0,idx);
         replay.marbleLinearVelocities = replay.marbleLinearVelocities.slice(0,idx);

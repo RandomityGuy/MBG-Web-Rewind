@@ -76,9 +76,12 @@ def get_directory_structure():
 @app.route('/php/get_custom_level_bitmap.php')
 def get_custom_level_bitmap():
     id = request.args.get('id');
-    url = f"https://cors-anywhere.herokuapp.com/marbleblast.vani.ga/php/get_custom_level_bitmap.php?id={id}";
+    url = f"https://marbleblast.vani.ga/php/get_custom_level_bitmap.php?id={id}";
     redir = redirect(url);
     redir.headers["X-Requested-With"] = "http://mbgwrewind.pythonanywhere.com";
+    redir.headers["Access-Control-Allow-Origin"] = "*";
+    redir.headers["Origin"] = "http://mbgwrewind.pythonanywhere.com";
+    print(redir.headers);
     return redir;
     # url = f"https://cla.higuy.me/api/v1/missions/{id}/bitmap?width=258&height=194"
     # return Response(requests.get(url).content,headers={"Content-Type":'Content-Type: image/jpeg'});
@@ -159,8 +162,11 @@ def get_custom_level():
         return;
     
     if (USE_PROXY_ASSETS):
-        resp = redirect(f"https://cors-anywhere.herokuapp.com/marbleblast.vani.ga/php/get_custom_level.php?id={id}");
+        resp = redirect(f"https://marbleblast.vani.ga/php/get_custom_level.php?id={id}");
         resp.headers["X-Requested-With"] = "http://mbgwrewind.pythonanywhere.com";
+        resp.headers["Access-Control-Allow-Origin"] = "*";
+        resp.headers["Origin"] = "http://mbgwrewind.pythonanywhere.com";
+        resp.headers["Content-Type"] = "application/zip";3
         return resp;
     
     if (not os.path.isdir(os.path.join(main_path,'storage','customs'))):
