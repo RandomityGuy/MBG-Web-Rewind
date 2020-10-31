@@ -967,7 +967,7 @@ export class Level extends Scheduler {
 			if (!playReplay){
 				// Update pathed interior positions after the physics tick because they will have changed position only after the physics tick was calculated, not during.
 				for (let interior of this.interiors) if (interior instanceof PathedInterior) interior.updatePosition();
-				if (!this.rewinding) this.marble.tick(this.timeState);
+				this.marble.tick(this.timeState);
 			}
 			this.marble.updatePowerUpStates(this.timeState);
 			
