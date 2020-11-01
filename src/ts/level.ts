@@ -1198,7 +1198,8 @@ export class Level extends Scheduler {
 			else this.overlayScene.remove(overlayShape.group);
 		}
 		
-		AudioManager.play(powerUp.sounds[0]);
+		if (!this.rewinding)
+			AudioManager.play(powerUp.sounds[0]);
 		
 		return true;
 	}
@@ -1268,7 +1269,8 @@ export class Level extends Scheduler {
 		// Show a notification (and play a sound) based on the gems remaining
 		if (this.gemCount === this.totalGems) {
 			string = "You have all the gems, head for the finish!";
-			AudioManager.play('gotallgems.wav');
+			if (!this.rewinding)
+				AudioManager.play('gotallgems.wav');
 						
 			// Some levels with this package end immediately upon collection of all gems
 			if (this.mission.misFile.activatedPackages.includes('endWithTheGems')) {
@@ -1284,8 +1286,9 @@ export class Level extends Scheduler {
 			} else {
 				string += `${remaining} gems to go!`;
 			}
-			
-			AudioManager.play('gotgem.wav');
+
+			if (!this.rewinding)
+				AudioManager.play('gotgem.wav');
 		}
 		
 		displayAlert(string);

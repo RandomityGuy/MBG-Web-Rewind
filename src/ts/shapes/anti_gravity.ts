@@ -23,6 +23,7 @@ export class AntiGravity extends PowerUp {
 		direction.applyQuaternion(this.worldOrientation);
 
 		this.level.setUp(Util.vecThreeToOimo(direction), time);
-		AudioManager.play(this.sounds[0]);
+		if (!this.level.rewinding)
+			AudioManager.play(this.sounds[0]);
 	}
 }

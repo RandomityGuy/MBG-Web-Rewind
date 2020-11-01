@@ -11,6 +11,7 @@ import { SerializedReplay, Replay } from "../replay";
 import { executeOnWorker } from "../worker";
 import { Leaderboards } from "../leaderboards";
 import { previousButtonState } from "../input";
+import { state } from "../state";
 
 export const CLA_ENABLED = true;
 
@@ -272,18 +273,34 @@ const displayMission = () => {
 
 		levelNumberElement.textContent = `${Util.uppercaseFirstLetter(mission.type)} Level ${currentLevelIndex + 1}`;
 
-		let lbdata = Leaderboards.get_scores(mission.path)
-		.then( (val) =>
-		{
-			onlineLeaderboard = {};
-			onlineLeaderboard[mission.path] = val;
-			displayBestTimes();
-		});
+
 	}
+	updateLBs(mission);
 
 	setImages();
 	updateNextPrevButtons();
 };
+
+export const updateLBs = (mission: Mission) => {
+	let lbdata = Leaderboards.get_scores(mission.path)
+	.then( (val) =>
+	{
+		onlineLeaderboard = {};
+		onlineLeaderboard[mission.path] = val;
+		displayBestTimes();
+	});
+}
+
+export const updateLBsAuto = () => {
+	let mission = currentLevelArray[currentLevelIndex];
+	let lbdata = Leaderboards.get_scores(mission.path)
+	.then( (val) =>
+	{
+		onlineLeaderboard = {};
+		onlineLeaderboard[mission.path] = val;
+		displayBestTimes();
+	});
+}
 
 /** Returns true if there is a next level to advance to. */
 const canGoNext = () => {

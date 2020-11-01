@@ -1,13 +1,14 @@
 import { Util } from "../util";
 import { setupButton, menuDiv, startMenuMusic } from "./ui";
 import { state } from "../state";
-import { levelSelectDiv, cycleMission, beginnerLevels, intermediateLevels, advancedLevels, getCurrentLevelIndex, getCurrentLevelArray } from "./level_select";
+import { levelSelectDiv, cycleMission, beginnerLevels, intermediateLevels, advancedLevels, getCurrentLevelIndex, getCurrentLevelArray, updateLBs, updateLBsAuto } from "./level_select";
 import { GO_TIME } from "../level";
 import { StorageManager } from "../storage";
 import { ResourceManager } from "../resources";
 import { AudioManager } from "../audio";
 import { Leaderboards } from "../leaderboards";
 import { getPressedFlag, resetPressedFlag, isPressedByGamepad, previousButtonState } from "../input";
+import { Mission } from "../mission";
 
 export const gameUiDiv = document.querySelector('#game-ui') as HTMLDivElement;
 export const gemCountElement = document.querySelector('#gem-count') as HTMLDivElement;
@@ -40,6 +41,7 @@ export let numberSources = {
 
 /** Stops and destroys the current level and returns back to the menu. */
 export const stopAndExit = () => {
+	updateLBs(state.currentLevel.mission);
 	state.currentLevel.stop();
 	state.currentLevel = null;
 	pauseScreenDiv.classList.add('hidden');
@@ -49,6 +51,7 @@ export const stopAndExit = () => {
 	finishScreenDiv.classList.add('hidden');
 	cycleMission(0); // Make sure to reload the current level to potentially update best times having changed
 	startMenuMusic();
+	updateLBsAuto();
 	// updateOnlineLeaderboard();
 	document.exitPointerLock();
 };
@@ -366,6 +369,7 @@ setupButton(nameEntryButton, 'common/ok', () => {
 
 	Leaderboards.post_score(level.mission.path,trimmed,level.finishTime.gameplayClock);
 	Leaderboards.upload_top_replay(level.mission.path,level.finishTime.gameplayClock,newScoreId);
+	updateLBs(level.mission);
 	// updateOnlineLeaderboard();
 
 	nameEntryScreenDiv.classList.add('hidden');
