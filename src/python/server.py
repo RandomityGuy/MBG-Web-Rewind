@@ -14,6 +14,16 @@ USE_PROXY_ASSETS = True;
 
 app = Flask(__name__,static_folder="",template_folder=main_path);
 
+REWIND_ASSETS = [
+    "ui/options/cntr_rwnd_d.png",
+    "ui/options/cntr_rwnd_h.png",
+    "ui/options/cntr_rwnd_n.png",
+    "ui/options/rwnd_quality.png",
+    "ui/options/rwnd_tab.png",
+    "ui/options/rwnd_timescale.png",
+    "ui/options/rwnd_txt.png"
+]
+
 @app.route('/')
 def main():
     with open(os.path.join(main_path,"index.html")) as f:
@@ -21,6 +31,11 @@ def main():
 
 @app.route('/assets/<path:varargs>')
 def assets(varargs):
+    if (USE_PROXY_ASSETS):
+        url = f"https://marbleblast.vani.ga/assets/{varargs}";
+        if (varargs not in REWIND_ASSETS and "data/missions/custom" not in varargs):
+            print(varargs);
+            return redirect(url);
     varargs = varargs.split('/');
     path = os.path.join(main_path,"assets",*varargs);
     with open(path,"rb") as f:
@@ -76,15 +91,16 @@ def get_directory_structure():
 @app.route('/php/get_custom_level_bitmap.php')
 def get_custom_level_bitmap():
     id = request.args.get('id');
-    url = f"https://marbleblast.vani.ga/php/get_custom_level_bitmap.php?id={id}";
-    redir = redirect(url);
-    redir.headers["X-Requested-With"] = "http://mbgwrewind.pythonanywhere.com";
-    redir.headers["Access-Control-Allow-Origin"] = "*";
-    redir.headers["Origin"] = "http://mbgwrewind.pythonanywhere.com";
-    print(redir.headers);
-    return redir;
-    # url = f"https://cla.higuy.me/api/v1/missions/{id}/bitmap?width=258&height=194"
-    # return Response(requests.get(url).content,headers={"Content-Type":'Content-Type: image/jpeg'});
+    if (USE_PROXY_ASSETS):
+        url = f"https://marbleblast.vani.ga/php/get_custom_level_bitmap.php?id={id}";
+        redir = redirect(url);
+        redir.headers["X-Requested-With"] = "http://mbgwrewind.pythonanywhere.com";
+        redir.headers["Access-Control-Allow-Origin"] = "*";
+        redir.headers["Origin"] = "http://mbgwrewind.pythonanywhere.com";
+        return redir;
+    else:
+        url = f"https://cla.higuy.me/api/v1/missions/{id}/bitmap?width=258&height=194"
+        return Response(requests.get(url).content,headers={"Content-Type":'Content-Type: image/jpeg'});
 
 def setup_db():
     lb = sqlite3.connect(os.path.join(main_path,'storage','leaderboards.db'));
@@ -202,23 +218,24 @@ def get_custom_level():
 
 @app.route("/php/log_error.php", methods = [ "POST" ])
 def log_error():
-
     postdata = request.get_json();
     
     if (not os.path.isdir(os.path.join(main_path,'storage','logs'))):
         os.mkdir(os.path.join(main_path,'storage','logs'));
 
 
-    s = str(datetime.datetime.now()) + " | " + postdata.get('userAgent') + "\n";
-    errs = json.loads(postdata.get('errors'));
+    s = str(datetime.datetime.now()) + " | " + postdata['userAgent'] + "\n";
+    errs = postdata['errors'];
 
     for kvp in errs:
-        s += kvp["filename"] + ":" + kvp["line"] + ":" + kvp["column"] + " " + kvp["message"] + "\n";
+        s += kvp["filename"] + ":" + str(kvp["line"]) + ":" + str(kvp["column"]) + " " + kvp["message"] + "\n";
 
     s += "\n";
 
     with open(os.path.join(main_path,'storage','logs','user_errors.log'),"a") as f:
         print(s,file = f);
+
+    return "OK";
 
 @app.route("/leaderboards", methods = [ "GET", "POST" ])
 def leaderboards():

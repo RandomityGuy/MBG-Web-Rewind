@@ -107,6 +107,28 @@
     width: 40px;
 }
 
+#rewind-disclaimer-1 {
+    display: block;
+    position: absolute;
+    top: 276px;
+    left: 55px;
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    line-height: 13px;
+    color: red;
+}
+
+#rewind-disclaimer-2 {
+    display: block;
+    position: absolute;
+    top: 180px;
+    left: 50px;
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    line-height: 13px;
+    color: red;
+}
+
 #graphics-text {
 	display: block;
     position: absolute;
