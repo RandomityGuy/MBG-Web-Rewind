@@ -29,20 +29,16 @@ export class Leaderboards
          } );
     }
 
-    static async upload_top_replay(mission: string, score: number, replayId: string) {
+    static async upload_top_replay(mission: string, score: number, replayData: ArrayBuffer) {
         let scores = await this.get_scores(mission,1);
-        if (scores[0]?.[1] >= score) {
-
-            let replayData = await StorageManager.databaseGet('replays', replayId) as ArrayBuffer;
-            if (!replayData) return;
-
+        if (scores[0]?.[1] >= score || scores.length === 0) {
             await fetch(`./leaderboards/uploadreplay?mission=${decodeURIComponent(mission)}&time=${decodeURIComponent(score.toString())}`, {
                 method: "POST",
                 headers: {
                     'Content-Type': 'application/octet-stream',
                 },
                 body: replayData
-             } );            
+             } );       
         }
     }
 

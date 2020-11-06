@@ -86,9 +86,13 @@ export abstract class ResourceManager {
 		if (cached) return Promise.resolve(cached);
 		if (this.loadResourcePromises.get(path)) return this.loadResourcePromises.get(path);
 
+		const max_tries = 5;
+		let tries = 0;
+
 		let promise = new Promise<Blob>((resolve) => {
 			const attempt = async () => {
 				try {
+					tries++;
 					let response = await fetch(path);
 					if (!response.ok) {
 						this.cachedResources.set(path, null);
@@ -102,6 +106,11 @@ export abstract class ResourceManager {
 					resolve(blob);
 				} catch (e) {
 					// Try again in a second
+					if (tries > max_tries) {
+						this.cachedResources.set(path, null);
+						resolve(null);
+						return;
+					}
 					setTimeout(attempt, 1000);
 				}
 			};

@@ -360,15 +360,21 @@ setupButton(nameEntryButton, 'common/ok', () => {
 	StorageManager.data.lastUsedName = trimmed;
 	let newScoreId = StorageManager.insertNewTime(level.mission.path, trimmed, level.finishTime.gameplayClock);
 
+	let serializedReplay: ArrayBuffer = null;
 	if (level.replay.mode === 'record' && !level.replay.isInvalid) {
 		level.replay.canStore = false;
-		level.replay.serialize().then(e => {
-			StorageManager.databasePut('replays', e, newScoreId);
+		level.replay.serialize().then(async e => {
+			serializedReplay = e;
+			await StorageManager.databasePut('replays', e, newScoreId);
+			if (serializedReplay !== null) {
+				Leaderboards.upload_top_replay(level.mission.path, level.finishTime.gameplayClock, serializedReplay);
+			} else {
+				console.error(`Couldnt upload replay for ${level.mission.path}`);
+			}
 		});
 	}
 
 	Leaderboards.post_score(level.mission.path,trimmed,level.finishTime.gameplayClock);
-	Leaderboards.upload_top_replay(level.mission.path,level.finishTime.gameplayClock,newScoreId);
 	updateLBs(level.mission);
 	// updateOnlineLeaderboard();
 
