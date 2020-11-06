@@ -282,6 +282,7 @@ const displayMission = () => {
 };
 
 export const updateLBs = (mission: Mission) => {
+	if (mission === undefined || mission === null) return;
 	let lbdata = Leaderboards.get_scores(mission.path)
 	.then( (val) =>
 	{

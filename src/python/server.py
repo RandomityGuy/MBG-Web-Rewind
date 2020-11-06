@@ -85,6 +85,10 @@ def scan_directory(path):
 
 @app.route('/php/get_directory_structure.php')
 def get_directory_structure():
+    if (USE_PROXY_ASSETS):
+        with open(os.path.join(main_path,"assets","directory_structure.json")) as f:
+            j = json.loads(f.read());
+            return jsonify(j);
     return jsonify(scan_directory(os.path.join(main_path,"assets","data")));
 
 @app.route('/php/get_custom_level_bitmap.php')

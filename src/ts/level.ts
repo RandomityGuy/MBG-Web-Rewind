@@ -941,18 +941,6 @@ export class Level extends Scheduler {
 		while (elapsed >= 1000 / PHYSICS_TICK_RATE) {
 			let timestate = [this.timeState.currentAttemptTime,this.timeState.gameplayClock,this.timeState.physicsTickCompletion];
 
-			if (!this.rewinding && !playReplay)
-			{
-				// this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(1000 / PHYSICS_TICK_RATE)); // Fair enough, its a constant delta t
-				this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(1 / PHYSICS_TICK_RATE)); // bruh timescale breaks down if this is in physics tick
-			}
-
-			if (this.rewinding && !playReplay && this.finishTime === null)
-			{
-				this.rewind.rewindFrame(null);
-				this.updateUI();
-			}
-
 			// By ticking we advance time, so advance time.
 			this.timeState.timeSinceLoad += 1000 / PHYSICS_TICK_RATE;
 			this.timeState.currentAttemptTime += 1000 / PHYSICS_TICK_RATE;
@@ -1074,6 +1062,18 @@ export class Level extends Scheduler {
 					return;
 				}
 			}
+		}
+
+		if (!this.rewinding && !playReplay)
+		{
+			// this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(1000 / PHYSICS_TICK_RATE)); // Fair enough, its a constant delta t
+			this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(this.deltaMs)); // bruh timescale breaks down if this is in physics tick
+		}
+
+		if (this.rewinding && !playReplay && this.finishTime === null)
+		{
+			this.rewind.rewindFrame(null);
+			this.updateUI();
 		}
 	
 		
