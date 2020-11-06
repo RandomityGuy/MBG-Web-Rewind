@@ -34,7 +34,6 @@ def assets(varargs):
     if (USE_PROXY_ASSETS):
         url = f"https://marbleblast.vani.ga/assets/{varargs}";
         if (varargs not in REWIND_ASSETS and "data/missions/custom" not in varargs):
-            print(varargs);
             return redirect(url);
     varargs = varargs.split('/');
     path = os.path.join(main_path,"assets",*varargs);
@@ -91,7 +90,7 @@ def get_directory_structure():
 @app.route('/php/get_custom_level_bitmap.php')
 def get_custom_level_bitmap():
     id = request.args.get('id');
-    if (USE_PROXY_ASSETS):
+    if (True):
         url = f"https://marbleblast.vani.ga/php/get_custom_level_bitmap.php?id={id}";
         redir = redirect(url);
         redir.headers["X-Requested-With"] = "http://mbgwrewind.pythonanywhere.com";

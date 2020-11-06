@@ -119,6 +119,7 @@ export abstract class ResourceManager {
 
 		let promise = new Promise<HTMLImageElement>((resolve) => {
 			let image = new Image();
+			image.crossOrigin = "Anonymous";
 			image.src = path;
 			
 			image.onload = () => {

@@ -34,7 +34,7 @@ import { Trigger } from "./triggers/trigger";
 import { InBoundsTrigger } from "./triggers/in_bounds_trigger";
 import { HelpTrigger } from "./triggers/help_trigger";
 import { OutOfBoundsTrigger } from "./triggers/out_of_bounds_trigger";
-import { displayTime, displayAlert, displayGemCount, gemCountElement, numberSources, setCenterText, displayHelp, showPauseScreen, hidePauseScreen, finishScreenDiv, showFinishScreen, stopAndExit, handleFinishScreenGamepadInput } from "./ui/game";
+import { displayTime, displayAlert, displayGemCount, gemCountElement, numberSources, setCenterText, displayHelp, showPauseScreen, hidePauseScreen, showFinishScreen, stopAndExit, handleFinishScreenGamepadInput } from "./ui/game";
 import { ResourceManager } from "./resources";
 import { AudioManager, AudioSource } from "./audio";
 import { PhysicsHelper } from "./physics";
@@ -122,7 +122,7 @@ export class Level extends Scheduler {
 	triggers: Trigger[] = [];
 	
 	shapes: Shape[] = [];
-	/** Holds data shared between multiple shapes of the same .dts path. */
+	/** Holds data shared between multiple shapes with the same constructor. */
 	sharedShapeData = new Map<string, Promise<SharedShapeData>>();
 	/** The shapes used for drawing HUD overlay (powerups in the corner) */
 	overlayShapes: Shape[] = [];
@@ -964,7 +964,7 @@ export class Level extends Scheduler {
 			
 			for (let shape of this.shapes) if (!shape.isTSStatic) shape.tick(this.timeState);
 			
-			if (!playReplay){
+			if (!playReplay) {
 				// Update pathed interior positions after the physics tick because they will have changed position only after the physics tick was calculated, not during.
 				for (let interior of this.interiors) if (interior instanceof PathedInterior) interior.updatePosition();
 				this.marble.tick(this.timeState);
@@ -1167,7 +1167,6 @@ export class Level extends Scheduler {
 	onMouseMove(e: MouseEvent) {
 		if (!document.pointerLockElement || this.finishTime || this.paused) return;
 		
-		// temp
 		let totalDistance = Math.hypot(e.movementX, e.movementY);
 		if (totalDistance > 300 && location.search.includes('debug')) alert(totalDistance + ', ' + e.movementX + ' ' + e.movementY);
 		

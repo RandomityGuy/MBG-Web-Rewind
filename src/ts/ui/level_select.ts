@@ -566,7 +566,7 @@ searchInput.addEventListener('focus', () => {
 
 const onSearchInputChange = () => {
 	// Normalize the search string and split it into words
-	let str = Util.normalizeString(searchInput.value).toLowerCase();
+	let str = Util.removeSpecialCharacters(Util.normalizeString(searchInput.value)).toLowerCase();
 	currentQueryWords = str.split(' ');
 	if (!str) currentQueryWords.length = 0;
 
@@ -650,7 +650,6 @@ loadReplayButton.addEventListener('mouseenter', () => {
 loadReplayButton.addEventListener('mousedown', (e) => {
 	if (e.button === 0) AudioManager.play('buttonpress.wav');
 });
-
 
 export const handleLevelSelectControllerInput = (gamepad: Gamepad) => {
 	// A button to play
