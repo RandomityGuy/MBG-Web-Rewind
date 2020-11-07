@@ -53,7 +53,6 @@ def assets(varargs):
             resp = redirect(url);
             resp.headers["Cache-Control"] = "public, max-age=14400";
             resp.headers["Content-Type"] = get_content_type(varargs);
-            print("SENDING SHIT");
             return resp;
     varargs = varargs.split('/');
     path = os.path.join(main_path,"assets",*varargs);
