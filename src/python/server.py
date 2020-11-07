@@ -1,4 +1,4 @@
-from flask import Flask,render_template,url_for,Response,jsonify,request,redirect;
+from flask import Flask, render_template, url_for, Response, jsonify, request ,redirect, send_file;
 import os;
 import requests;
 from zipfile import ZipFile;
@@ -47,17 +47,21 @@ def main():
 
 @app.route('/assets/<path:varargs>')
 def assets(varargs):
+    content_type = get_content_type(varargs);
     if (USE_PROXY_ASSETS):
         url = f"https://marbleblast.vani.ga/assets/{varargs}";
         if (varargs not in REWIND_ASSETS and "data/missions/custom" not in varargs):
             resp = redirect(url);
             resp.headers["Cache-Control"] = "public, max-age=14400";
-            resp.headers["Content-Type"] = get_content_type(varargs);
+            resp.headers["Content-Type"] = content_type;
             return resp;
     varargs = varargs.split('/');
     path = os.path.join(main_path,"assets",*varargs);
     with open(path,"rb") as f:
-        return f.read();
+        resp = Response(f.read());
+        resp.headers["Cache-Control"] = "public, max-age=14400";
+        resp.headers["Content-Type"] = get_content_type;
+        return resp;
 
 @app.route('/bundles/<path:varargs>')
 def bundles(varargs):

@@ -139,7 +139,8 @@ export class Rewind {
             if (itr instanceof PathedInterior)
             {
                 let pi = itr as PathedInterior;
-                states.push({currentTime: pi.currentTime, targetTime: pi.targetTime, changeTime: pi.changeTime});
+                if (pi.triggers.length > 0) // We'll just carefully monitor these 
+                    states.push({currentTime: pi.currentTime, targetTime: pi.targetTime, changeTime: pi.changeTime});
             }
         }
 
@@ -159,12 +160,11 @@ export class Rewind {
 
                 let pi = itr as PathedInterior;
 
-                pi.targetTime = state.targetTime;
-
-                //if (pi.targetTime != -1) {
+                if (pi.triggers.length > 0) {
+                    pi.targetTime = state.targetTime;
                     pi.changeTime = state.changeTime;
                     pi.currentTime = state.currentTime;
-                //}
+                }
             }
         }
 
