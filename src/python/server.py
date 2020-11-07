@@ -24,6 +24,22 @@ REWIND_ASSETS = [
     "ui/options/rwnd_txt.png"
 ]
 
+CONTENT_TYPE_DICT = {
+    "jpg": "image/jpg",
+    "png": "image/png",
+    "mis": "application/octet-stream",
+    "css": "text/css; charset=utf-8",
+    "wav": "application/octet-stream",
+    "ogg": "application/octet-stream"
+}
+
+def get_content_type(content):
+    extension = content[-3:];
+    if (extension in CONTENT_TYPE_DICT):
+        return CONTENT_TYPE_DICT[extension];
+    return "text/html; charset=utf-8";
+    
+
 @app.route('/')
 def main():
     with open(os.path.join(main_path,"index.html")) as f:
@@ -34,7 +50,11 @@ def assets(varargs):
     if (USE_PROXY_ASSETS):
         url = f"https://marbleblast.vani.ga/assets/{varargs}";
         if (varargs not in REWIND_ASSETS and "data/missions/custom" not in varargs):
-            return redirect(url);
+            resp = redirect(url);
+            resp.headers["Cache-Control"] = "public, max-age=14400";
+            resp.headers["Content-Type"] = get_content_type(varargs);
+            print("SENDING SHIT");
+            return resp;
     varargs = varargs.split('/');
     path = os.path.join(main_path,"assets",*varargs);
     with open(path,"rb") as f:
