@@ -6,7 +6,7 @@ import io;
 import json;
 import datetime;
 import sqlite3;
-import sheetsupdater;
+#import sheetsupdater;
 
 main_path = os.path.abspath(".");
 
@@ -352,6 +352,6 @@ def has_replay():
         return "true";
 
 
-@app.route("/lbs/data")
-def get_lb_sheet():
-    return sheetsupdater.get_data();
+# @app.route("/lbs/data")
+# def get_lb_sheet():
+#     return sheetsupdater.get_data();

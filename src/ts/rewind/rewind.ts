@@ -156,12 +156,11 @@ export class Rewind {
             let itr = level.interiors[i];
             if (itr instanceof PathedInterior)
             {
-                let state = states[0];
-                states.splice(0,1);
-
                 let pi = itr as PathedInterior;
 
                 if (pi.triggers.length > 0) {
+                    let state = states[0];
+                    states.splice(0,1);
                     pi.targetTime = state.targetTime;
                     pi.changeTime = state.changeTime;
                     pi.currentTime = state.currentTime;
