@@ -70,8 +70,8 @@ const DEFAULT_STORAGE_DATA: StorageData = {
 			"cameraLeft": "ArrowLeft",
 			"cameraRight": "ArrowRight",
 			"freeLook": "RMB",
-			"rewind": "KeyR",
-			"restart": "KeyT"
+			"rewind": "ShiftLeft",
+			"restart": "KeyR"
 		},
 		rewindTimescale: 1,
 		rewindQuality: 0,

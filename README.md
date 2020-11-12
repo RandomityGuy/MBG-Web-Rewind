@@ -8,7 +8,7 @@ Current release is hosted [here](http://mbgwrewind.pythonanywhere.com/)
 - Replays - local and leaderboard
 
 ## Usage
-Start a level, press and hold 'R' to rewind
+Start a level, press and hold 'Left Shift' to rewind
 
 ## Building
 To compile, run `npm install`, then `npm run compile`. For fast building after initial build, do `npm run watch-fast`.
