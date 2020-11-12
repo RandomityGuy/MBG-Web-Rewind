@@ -24,6 +24,7 @@ export class Rewind {
     rewindManager: RewindManager
     timescale: number = 1;
     frameskip: number = 0; // Unused
+    frameskipFramecounter: number = 0;
     matchfps: boolean;
     previousFrame: Frame;
 

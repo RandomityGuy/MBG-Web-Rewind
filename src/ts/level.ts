@@ -183,6 +183,7 @@ export class Level extends Scheduler {
 	lastRewinding = false;
 	
 	deltaMs: number; // Why isnt this stored anywhere
+	deltaMsAccumulator: number;
 	oobSchedule: number;
 
 	// Replay controls
@@ -240,7 +241,8 @@ export class Level extends Scheduler {
 		this.rewind.rewindManager.level = this;
 		this.rewind.timescale = StorageManager.data.settings.rewindTimescale;
 		this.rewind.matchfps = StorageManager.data.settings.rewindMatchFPS;
-		this.rewind.frameskip = StorageManager.data.settings.rewindQuality;
+		// this.rewind.frameskip = Math.floor(Util.lerp(0,4,StorageManager.data.settings.rewindQuality));
+		this.rewind.frameskipFramecounter = 0;
 	}
 	
 	async start() {
@@ -627,6 +629,7 @@ export class Level extends Scheduler {
 		this.oobSchedule = -1;
 		this.lastPhysicsTick = null;
 		this.maxDisplayedTime = 0;
+		this.rewind.frameskipFramecounter = 0;
 		
 		if (this.totalGems > 0) {
 			this.gemCount = 0;
@@ -888,6 +891,11 @@ export class Level extends Scheduler {
 		let playReplay = this.replay.mode === 'playback';
 		
 		this.rewinding = isPressed('rewind');
+
+		if (this.rewind.frameskip !== 0) {
+			this.rewind.frameskipFramecounter++;
+			this.rewind.frameskipFramecounter %= this.rewind.frameskip;
+		}
 		
 		if (!playReplay && (isPressed('use') || this.useQueued) && getPressedFlag('use')) {
 			if (this.outOfBounds && !this.finishTime) {
@@ -934,6 +942,13 @@ export class Level extends Scheduler {
 			this.lastPhysicsTick = time - 1000;
 		}
 		
+		if (this.rewind.frameskip !== 0) {
+
+			if ((this.rewind.frameskipFramecounter % this.rewind.frameskip) == 0) this.deltaMsAccumulator = 0;
+
+			this.deltaMsAccumulator += elapsed;
+		}
+
 		this.deltaMs = elapsed;
 		
 		let tickDone = false;
@@ -1064,10 +1079,11 @@ export class Level extends Scheduler {
 			}
 		}
 
-		if (!this.rewinding && !playReplay)
+		if (!this.rewinding && !playReplay && this.rewind.frameskipFramecounter == 0)
 		{
 			// this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(1000 / PHYSICS_TICK_RATE)); // Fair enough, its a constant delta t
-			this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(this.deltaMs)); // bruh timescale breaks down if this is in physics tick
+			if (this.rewind.frameskip == 0) this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(this.deltaMs)); // bruh timescale breaks down if this is in physics tick
+			else this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(this.deltaMsAccumulator));
 		}
 
 		if (this.rewinding && !playReplay && this.finishTime === null)
@@ -1389,6 +1405,7 @@ export class Level extends Scheduler {
 	stop() {
 		this.stopped = true;
 		clearInterval(this.tickInterval);
+		this.dispose();
 		
 		this.music.stop();
 		for (let shape of this.shapes) {
@@ -1407,5 +1424,12 @@ export class Level extends Scheduler {
 	/** Returns how much percent the level has finished loading. */
 	getLoadingCompletion() {
 		return this.loadingState.total? this.loadingState.loaded / this.loadingState.total : 0;
+	}
+	
+	/** Disposes the GPU assets used by the level. */
+	dispose() {
+		for (let interior of this.interiors) interior.dispose();
+		for (let shape of this.shapes) shape.dispose();
+		for (let overlayShape of this.overlayShapes) overlayShape.dispose();
 	}
 }
