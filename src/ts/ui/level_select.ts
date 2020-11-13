@@ -50,6 +50,8 @@ let currentLevelArray: Mission[];
 /** The index of the currently selected level. */
 let currentLevelIndex: number;
 
+let downloadingReplay: boolean;
+
 export const getCurrentLevelArray = () => currentLevelArray;
 export const getCurrentLevelIndex = () => currentLevelIndex;
 
@@ -463,11 +465,12 @@ const displayBestTimes = () => {
 						replayButton.addEventListener('click', async (e) => {
 							if (e.button !== 0) return;
 							let mission = currentLevelArray[currentLevelIndex];
-							if (!mission) return;								
-				
+							if (!mission) return;
+							if (downloadingReplay) return;						
+							downloadingReplay = true;
 							let replayData = await Leaderboards.get_top_replay(mission?.path);
 							if (!replayData) return;
-
+							downloadingReplay = false;
 							playCurrentLevel(replayData);
 				
 						});

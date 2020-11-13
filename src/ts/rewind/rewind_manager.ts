@@ -114,6 +114,8 @@ export class RewindManager
         f.mpstates = [...two.mpstates];
 
         f.elapsedTime = Util.lerp(one.elapsedTime,two.elapsedTime,ratio);
+        f.physicsTime = Util.lerp(one.physicsTime,two.physicsTime,ratio);
+        f.lastContactNormal = two.lastContactNormal;
 
         // Surprisingly this was much shorter than the code in RewindManager.cpp
         return f;

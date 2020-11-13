@@ -43,7 +43,9 @@ def get_content_type(content):
 @app.route('/')
 def main():
     with open(os.path.join(main_path,"index.html")) as f:
-        return f.read();
+        resp = Response(f.read());
+        resp.headers["Cache-Control"] = "no-store";
+        return resp;
 
 @app.route('/assets/<path:varargs>')
 def assets(varargs):

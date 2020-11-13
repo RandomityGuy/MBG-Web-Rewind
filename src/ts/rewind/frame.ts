@@ -38,6 +38,7 @@ export class Frame
     trapdoorcompletion: number[] // List of trapdoor completions
     elapsedTime: number // same as timeSinceLoad
     physicsTime: number
+    lastContactNormal: THREE.Vector3
 
     clone() {
         let retf = new Frame();
@@ -63,6 +64,7 @@ export class Frame
         retf.trapdoorcompletion = [...this.trapdoorcompletion];
         retf.elapsedTime = this.elapsedTime;
         retf.physicsTime = this.physicsTime;
+        retf.lastContactNormal = this.lastContactNormal;
         return retf;
 
     }

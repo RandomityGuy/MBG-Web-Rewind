@@ -200,6 +200,7 @@ export class Rewind {
         f.timeSinceLoad = level.timeState.timeSinceLoad;
         f.mpstates = this.getMPStates();
         f.physicsTime = level.timeState.physicsTickCompletion;
+        f.lastContactNormal = Util.vecOimoToThree(level.marble.lastContactNormal);
 
         return f;
     }
@@ -276,6 +277,7 @@ export class Rewind {
         marble.body.setOrientation(framedata.rotation);
         marble.body.setLinearVelocity(Util.vecThreeToOimo(framedata.velocity));
         marble.body.setAngularVelocity(Util.vecThreeToOimo(framedata.spin));
+        marble.lastContactNormal = Util.vecThreeToOimo(framedata.lastContactNormal);
 
         let state = new MissionState();
         state.explosivestates = framedata.lmstates;
