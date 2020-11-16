@@ -593,7 +593,6 @@ export class MisParser {
 	static parseRotation(string: string) {
 		if (!string) return new THREE.Quaternion();
 		let parts = string.split(' ').map((part) => Number(part));
-		if (parts.length !== 4) return new THREE.Quaternion();
 		if (parts.length < 4) return new THREE.Quaternion();
 		if (parts.find(x => !isFinite(x)) !== undefined) return new THREE.Quaternion();
 
