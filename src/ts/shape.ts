@@ -673,7 +673,7 @@ export class Shape {
 		for (let i = 0; i < this.bodies.length; i++) {
 			let body = this.bodies[i];
 			let mat: THREE.Matrix4;
-
+			
 			if (body.userData?.nodeIndex !== undefined) {
 				if (((1 << body.userData.nodeIndex) & bitfield) === 0) continue;
 				mat = this.worldMatrix.clone();

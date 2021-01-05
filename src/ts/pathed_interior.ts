@@ -1,11 +1,11 @@
 import { Interior } from "./interior";
-import { DifParser } from "./parsing/dif_parser";
 import { MissionElementSimGroup, MissionElementType, MissionElementPathedInterior, MissionElementPath, MisParser, MissionElementTrigger } from "./parsing/mis_parser";
 import { Util } from "./util";
 import * as THREE from "three";
 import { TimeState, PHYSICS_TICK_RATE, Level } from "./level";
 import { MustChangeTrigger } from "./triggers/must_change_trigger";
 import OIMO from "./declarations/oimo";
+import { AudioManager, AudioSource } from "./audio";
 
 interface MarkerData {
 	msToNext: number,
@@ -22,6 +22,9 @@ export class PathedInterior extends Interior {
 	element: MissionElementPathedInterior;
 	triggers: MustChangeTrigger[] = [];
 	hasCollision: boolean;
+	/** Some pathed interiors emit a sound; this is for that. */
+	soundSource: AudioSource;
+	soundPosition: THREE.Vector3;
 
 	/** The total duration of the path. */
 	duration: number;
@@ -35,7 +38,7 @@ export class PathedInterior extends Interior {
 	basePosition: THREE.Vector3;
 	baseOrientation: THREE.Quaternion;
 	baseScale: THREE.Vector3;
-	prevPosition: THREE.Vector3 = null;
+	prevPosition: THREE.Vector3;
 	currentPosition = new THREE.Vector3();
 
 	/** Creates a PathedInterior from a sim group containing it and its path (and possible triggers). */
@@ -51,6 +54,7 @@ export class PathedInterior extends Interior {
 		level.interiors.push(pathedInterior);
 		await Util.wait(10); // See shapes for the meaning of this hack
 		await pathedInterior.init();
+
 		return pathedInterior;
 	}
 
@@ -70,7 +74,6 @@ export class PathedInterior extends Interior {
 
 		this.buildCollisionGeometry(this.baseScale);
 		this.body.setOrientation(new OIMO.Quat(this.baseOrientation.x, this.baseOrientation.y, this.baseOrientation.z, this.baseOrientation.w));
-		this.element = this.element;
 		this.path = this.simGroup.elements.find((element) => element._type === MissionElementType.Path) as MissionElementPath;
 
 		// Parse the markers
@@ -92,7 +95,20 @@ export class PathedInterior extends Interior {
 			this.triggers.push(trigger);
 		}
 
+		// Create a sound effect if so specified
+		if (this.element.datablock?.toLowerCase() === 'pathedmovingblock') {
+			this.soundPosition = new THREE.Vector3(); // This position will be modified
+			this.soundSource = AudioManager.createAudioSource('movingblockloop.wav', AudioManager.soundGain, this.soundPosition);
+			this.soundSource.node.loop = true;
+
+			await this.soundSource.promise;
+		}
+
 		this.reset();
+	}
+
+	async onLevelStart() {
+		this.soundSource?.play();
 	}
 
 	/** Computes the total duration of the path. */
@@ -129,12 +145,10 @@ export class PathedInterior extends Interior {
 	tick(time: TimeState) {
 		let transform = this.getTransformAtTime(this.getInternalTime(time.currentAttemptTime));
 
-		let position = new THREE.Vector3();
-		transform.decompose(position, new THREE.Quaternion(), new THREE.Vector3()); // The orientation doesn't matter in that version of TGE
+		this.body.setPosition(Util.vecThreeToOimo(this.currentPosition)); // Reset the body's position to the last position used in a proper physics simstep. We do this because the position might've changed since then through render().
 
-		if (!this.prevPosition) this.prevPosition = position.clone();
-		else this.prevPosition.copy(this.currentPosition);
-
+		let position = new THREE.Vector3().setFromMatrixPosition(transform); // The orientation doesn't matter in that version of TGE, so we only need position
+		this.prevPosition.copy(this.currentPosition);
 		this.currentPosition = position;
 
 		// Calculate the velocity based on current and last position
@@ -149,6 +163,9 @@ export class PathedInterior extends Interior {
 			this.body.setType(OIMO.RigidBodyType.STATIC);
 			this.body.setLinearVelocity(new OIMO.Vec3());
 		}
+
+		// Modify the sound effect position, if present
+		this.soundPosition?.copy(position).add(this.markerData[0]?.position ?? new THREE.Vector3());
 	}
 
 	updatePosition() {
@@ -164,6 +181,8 @@ export class PathedInterior extends Interior {
 			// Incase there are no markers at all
 			let mat = new THREE.Matrix4();
 			mat.compose(this.basePosition, this.baseOrientation, this.baseScale);
+
+			return mat;
 		}
 
 		// Find the two markers in question
@@ -225,12 +244,16 @@ export class PathedInterior extends Interior {
 
 	render(time: TimeState) {
 		let transform = this.getTransformAtTime(this.getInternalTime(time.currentAttemptTime));
+
 		if (this.useInstancing) {
 			this.sharedData.instancedMesh.setMatrixAt(this.instanceIndex, transform);
 			this.sharedData.instancedMesh.instanceMatrix.needsUpdate = true;
 		} else {
 			this.mesh.matrix.copy(transform);
 		}
+
+		let position = new THREE.Vector3().setFromMatrixPosition(transform);
+		this.body.setPosition(Util.vecThreeToOimo(position)); // Set the position of the body as well for correct camera raycasting results
 	}
 
 	/** Resets the movement state of the pathed interior to the beginning values. */
@@ -238,7 +261,6 @@ export class PathedInterior extends Interior {
 		this.currentTime = 0;
 		this.targetTime = 0;
 		this.changeTime = 0;
-		this.prevPosition = null;
 
 		if (this.element.initialposition) {
 			this.currentTime = MisParser.parseNumber(this.element.initialposition);
@@ -249,5 +271,14 @@ export class PathedInterior extends Interior {
 			// Alright this is strange. In Torque, there are some FPS-dependent client/server desync issues that cause the interior to start at the end position whenever the initialTargetPosition is somewhere greater than 1 and, like, approximately below 50.
 			if (this.targetTime > 0 && this.targetTime < 50) this.currentTime = this.duration;
 		}
+
+		// Reset the position
+		let transform = this.getTransformAtTime(this.getInternalTime(0));
+		let position = new THREE.Vector3().setFromMatrixPosition(transform);
+
+		this.prevPosition = position.clone();
+		this.currentPosition = position;
+		this.body.setPosition(Util.vecThreeToOimo(this.currentPosition));
+		this.soundPosition?.copy(position).add(this.markerData[0]?.position ?? new THREE.Vector3());
 	}
 }

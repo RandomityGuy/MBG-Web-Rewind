@@ -4,7 +4,7 @@ import { ResourceManager } from "../resources";
 export const menuDiv = document.querySelector('#menu') as HTMLDivElement;
 
 /** Sets up an image element to act like a button and change textures based on click and hover state. */
-export const setupButton = (element: HTMLImageElement, path: string, onclick: () => any, loadDisabledImage = false) => {
+export const setupButton = (element: HTMLImageElement, path: string, onclick: () => any, loadDisabledImage = false, triggerOnMouseDown = false) => {
 	let ogPath = path;
 	path = './assets/ui/' + path;
 	let normal = path + '_n.png';
@@ -12,16 +12,21 @@ export const setupButton = (element: HTMLImageElement, path: string, onclick: ()
 	let down = path + '_d.png';
 	let disabled = path + '_i.png';
 	let held = false;
+	let hovered = false;
 
 	element.src = normal;
 	element.addEventListener('mouseenter', () => {
 		if (element.style.pointerEvents === 'none') return;
 		if (!element.hasAttribute('data-locked')) element.src = held? down : hover;
 		if (!held) AudioManager.play('buttonover.wav');
+		hovered = true;
+		element.setAttribute('data-hovered', '');
 	});
 	element.addEventListener('mouseleave', () => {
 		if (element.style.pointerEvents === 'none') return;
 		if (!element.hasAttribute('data-locked')) element.src = normal;
+		hovered = false;
+		element.removeAttribute('data-hovered');
 	});
 	element.addEventListener('mousedown', (e) => {
 		if (element.style.pointerEvents === 'none') return;
@@ -29,13 +34,14 @@ export const setupButton = (element: HTMLImageElement, path: string, onclick: ()
 		held = true;
 		if (!element.hasAttribute('data-locked')) element.src = down;
 		AudioManager.play('buttonpress.wav');
+		if (triggerOnMouseDown) onclick();
 	});
 	window.addEventListener('mouseup', () => {
 		if (element.style.pointerEvents === 'none') return;
 		held = false;
-		if (!element.hasAttribute('data-locked')) element.src = normal;
+		if (!element.hasAttribute('data-locked')) element.src = hovered? hover : normal;
 	});
-	element.addEventListener('click', (e) => e.button === 0 && onclick());
+	if (!triggerOnMouseDown) element.addEventListener('click', (e) => e.button === 0 && onclick());
 
 	if (ogPath) {
 		// Preload the images

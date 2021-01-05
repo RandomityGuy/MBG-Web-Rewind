@@ -87,9 +87,9 @@ setupTab(tabIntermediate, 'intermediate');
 setupTab(tabAdvanced, 'advanced');
 setupTab(tabCustom, 'custom');
 
-setupButton(prevButton, 'play/prev', () => cycleMission(-1), true);
+setupButton(prevButton, 'play/prev', () => cycleMission(-1), true, true);
 setupButton(playButton, 'play/play', () => playCurrentLevel(), true);
-setupButton(nextButton, 'play/next', () => cycleMission(1), true);
+setupButton(nextButton, 'play/next', () => cycleMission(1), true, true);
 setupButton(homeButton, 'play/back', () => {
 	// Close level select and return back to the home screen
 	levelSelectDiv.classList.add('hidden');
@@ -337,7 +337,7 @@ const updateNextPrevButtons = () => {
 		nextButton.src = './assets/ui/play/next_i.png';
 		nextButton.style.pointerEvents = 'none';
 	} else {
-		nextButton.src = './assets/ui/play/next_n.png';
+		if (nextButton.src.endsWith('i.png')) nextButton.src = './assets/ui/play/next_n.png';
 		nextButton.style.pointerEvents = '';
 	}
 
@@ -346,7 +346,7 @@ const updateNextPrevButtons = () => {
 		prevButton.src = './assets/ui/play/prev_i.png';
 		prevButton.style.pointerEvents = 'none';
 	} else {
-		prevButton.src = './assets/ui/play/prev_n.png';
+		if (prevButton.src.endsWith('i.png')) prevButton.src = './assets/ui/play/prev_n.png';
 		prevButton.style.pointerEvents = '';
 	}
 };
@@ -531,9 +531,9 @@ window.addEventListener('keyup', (e) => {
 	if (levelSelectDiv.classList.contains('hidden')) return;
 
 	if (e.code === 'ArrowLeft') {
-		if (!prevButton.style.pointerEvents) prevButton.src = './assets/ui/play/prev_n.png';
+		if (!prevButton.style.pointerEvents) prevButton.src = prevButton.hasAttribute('data-hovered')? './assets/ui/play/prev_h.png' : './assets/ui/play/prev_n.png';
 	} else if (e.code === 'ArrowRight') {
-		if (!nextButton.style.pointerEvents) nextButton.src = './assets/ui/play/next_n.png';
+		if (!nextButton.style.pointerEvents) nextButton.src = nextButton.hasAttribute('data-hovered')? './assets/ui/play/next_h.png' : './assets/ui/play/next_n.png';
 	} else if (e.code === 'Escape') {
 		homeButton.click();
 	}

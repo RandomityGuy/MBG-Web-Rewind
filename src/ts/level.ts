@@ -34,7 +34,7 @@ import { Trigger } from "./triggers/trigger";
 import { InBoundsTrigger } from "./triggers/in_bounds_trigger";
 import { HelpTrigger } from "./triggers/help_trigger";
 import { OutOfBoundsTrigger } from "./triggers/out_of_bounds_trigger";
-import { displayTime, displayAlert, displayGemCount, gemCountElement, numberSources, setCenterText, displayHelp, showPauseScreen, hidePauseScreen, showFinishScreen, stopAndExit, handleFinishScreenGamepadInput } from "./ui/game";
+import { displayTime, displayAlert, displayGemCount, gemCountElement, numberSources, setCenterText, displayHelp, showPauseScreen, hidePauseScreen, showFinishScreen, stopAndExit, handleFinishScreenGamepadInput, alertElement, helpElement } from "./ui/game";
 import { ResourceManager } from "./resources";
 import { AudioManager, AudioSource } from "./audio";
 import { PhysicsHelper } from "./physics";
@@ -172,6 +172,10 @@ export class Level extends Scheduler {
 	useQueued = false;
 	/** Whether or not the player is currently pressing the restart button. */
 	pressingRestart = false;
+	/** The time state at the last point the help text was updated. */
+	helpTextTimeState: TimeState = null;
+	/** The time state at the last point the alert text was updated. */
+	alertTextTimeState: TimeState = null;
 	
 	timeTravelSound: AudioSource;
 	music: AudioSource;
@@ -204,7 +208,7 @@ export class Level extends Scheduler {
 					this.loadingState.total++;
 					
 					// Override the end pad element. We do this because only the last finish pad element will actually do anything.
-					if (element._type === MissionElementType.StaticShape && element.datablock.toLowerCase() === 'endpad') this.endPadElement = element;
+					if (element._type === MissionElementType.StaticShape && element.datablock?.toLowerCase() === 'endpad') this.endPadElement = element;
 				} else if (element._type === MissionElementType.SimGroup) {
 					scanMission(element);
 				}
@@ -252,6 +256,7 @@ export class Level extends Scheduler {
 		displayAlert('');
 		
 		this.restart();
+		for (let interior of this.interiors) await interior.onLevelStart();
 		for (let shape of this.shapes) await shape.onLevelStart();
 		AudioManager.normalizePositionalAudioVolume();
 		
@@ -518,24 +523,25 @@ export class Level extends Scheduler {
 		let shape: Shape;
 		
 		// Add the correct shape based on type
-		let dataBlockLowerCase = element.datablock.toLowerCase();
-		if (dataBlockLowerCase === "startpad") shape = new StartPad();
+		let dataBlockLowerCase = element.datablock?.toLowerCase();
+		if (!dataBlockLowerCase) {} // Make sure we don't do anything if there's no data block
+		else if (dataBlockLowerCase === "startpad") shape = new StartPad();
 		else if (dataBlockLowerCase === "endpad") shape = new EndPad(element === this.endPadElement);
 		else if (dataBlockLowerCase === "signfinish") shape = new SignFinish();
 		else if (dataBlockLowerCase.startsWith("signplain")) shape = new SignPlain(element as MissionElementStaticShape);
 		else if (dataBlockLowerCase.startsWith("gemitem")) shape = new Gem(element as MissionElementItem), this.totalGems++;
-		else if (dataBlockLowerCase === "superjumpitem") shape = new SuperJump();
+		else if (dataBlockLowerCase === "superjumpitem") shape = new SuperJump(element as MissionElementItem);
 		else if (dataBlockLowerCase.startsWith("signcaution")) shape = new SignCaution(element as MissionElementStaticShape);
-		else if (dataBlockLowerCase === "superbounceitem") shape = new SuperBounce();
+		else if (dataBlockLowerCase === "superbounceitem") shape = new SuperBounce(element as MissionElementItem);
 		else if (dataBlockLowerCase === "roundbumper") shape = new RoundBumper();
 		else if (dataBlockLowerCase === "trianglebumper") shape = new TriangleBumper();
-		else if (dataBlockLowerCase === "helicopteritem") shape = new Helicopter();
+		else if (dataBlockLowerCase === "helicopteritem") shape = new Helicopter(element as MissionElementItem);
 		else if (dataBlockLowerCase === "ductfan") shape = new DuctFan();
 		else if (dataBlockLowerCase === "smallductfan") shape = new SmallDuctFan();
-		else if (dataBlockLowerCase === "antigravityitem") shape = new AntiGravity();
+		else if (dataBlockLowerCase === "antigravityitem") shape = new AntiGravity(element as MissionElementItem);
 		else if (dataBlockLowerCase === "landmine") shape = new LandMine();
-		else if (dataBlockLowerCase === "shockabsorberitem") shape = new ShockAbsorber();
-		else if (dataBlockLowerCase === "superspeeditem") shape = new SuperSpeed();
+		else if (dataBlockLowerCase === "shockabsorberitem") shape = new ShockAbsorber(element as MissionElementItem);
+		else if (dataBlockLowerCase === "superspeeditem") shape = new SuperSpeed(element as MissionElementItem);
 		else if (dataBlockLowerCase === "timetravelitem") shape = new TimeTravel(element as MissionElementItem);
 		else if (dataBlockLowerCase === "tornado") shape = new Tornado();
 		else if (dataBlockLowerCase === "trapdoor") shape = new TrapDoor(element as MissionElementStaticShape);
@@ -789,7 +795,18 @@ export class Level extends Scheduler {
 
 		timeToDisplay = Math.min(timeToDisplay, MAX_TIME);
 		displayTime(timeToDisplay / 1000);
-		
+
+		// Update help and alert text visibility
+		let helpTextTime = this.helpTextTimeState?.timeSinceLoad ?? -Infinity;
+		let alertTextTime = this.alertTextTimeState?.timeSinceLoad ?? -Infinity;
+		let helpTextCompletion = Util.clamp((this.timeState.timeSinceLoad - helpTextTime - 3000) / 1000, 0, 1) ** 2;
+		let alertTextCompletion = Util.clamp((this.timeState.timeSinceLoad - alertTextTime - 3000) / 1000, 0, 1) ** 2;
+
+		helpElement.style.opacity = (1 - helpTextCompletion).toString();
+		helpElement.style.filter = `brightness(${Util.lerp(1, 0.25, helpTextCompletion)})`;
+		alertElement.style.opacity = (1 - alertTextCompletion).toString();
+		alertElement.style.filter = `brightness(${Util.lerp(1, 0.25, alertTextCompletion)})`;
+
 		requestAnimationFrame(() => this.render());
 	}
 	
@@ -954,7 +971,7 @@ export class Level extends Scheduler {
 		let tickDone = false;
 		// Make sure to execute the correct amount of ticks
 		while (elapsed >= 1000 / PHYSICS_TICK_RATE) {
-			let timestate = [this.timeState.currentAttemptTime,this.timeState.gameplayClock,this.timeState.physicsTickCompletion];
+			let timestate = [this.timeState.currentAttemptTime, this.timeState.gameplayClock, this.timeState.physicsTickCompletion];
 
 			// By ticking we advance time, so advance time.
 			this.timeState.timeSinceLoad += 1000 / PHYSICS_TICK_RATE;
@@ -963,15 +980,23 @@ export class Level extends Scheduler {
 			elapsed -= 1000 / PHYSICS_TICK_RATE;
 			
 			this.tickSchedule(this.timeState.currentAttemptTime);
-			if (!playReplay) this.physics.step(); // Step the physics
+
+			// Update pathed interior velocities before running the simulation step
+			// Note: We do this even in replay playback mode, because pathed interior body position is relevant for the camera code.
+			for (let interior of this.interiors) interior.tick(this.timeState);
+
+			// Step the physics
+			if (!playReplay) this.physics.step();
 			
 			for (let shape of this.shapes) if (!shape.isTSStatic) shape.tick(this.timeState);
-			
-			if (!playReplay) {
-				// Update pathed interior positions after the physics tick because they will have changed position only after the physics tick was calculated, not during.
-				for (let interior of this.interiors) if (interior instanceof PathedInterior) interior.updatePosition();
-				this.marble.tick(this.timeState);
-			}
+
+			// Update pathed interior positions after the physics tick because they will have changed position only after the physics tick was calculated, not during.
+			for (let interior of this.interiors) if (interior instanceof PathedInterior) interior.updatePosition();
+
+			// Major bruh energy here: Simply updating the interior positions isn't enough, OIMO needs to do some extra broadphase stuff or something. That's why we do this call here.
+			if (playReplay) (this.physics.world as any)._updateContacts();
+
+			if (!playReplay) this.marble.tick(this.timeState);
 			this.marble.updatePowerUpStates(this.timeState);
 			
 			this.jumpQueued = false;
@@ -1061,13 +1086,13 @@ export class Level extends Scheduler {
 						this.replay.currentTickIndex++;
 						this.timeState.timeSinceLoad += 1000 / PHYSICS_TICK_RATE;
 						this.timeState.currentAttemptTime += 1000 / PHYSICS_TICK_RATE
-						timestate = [this.timeState.currentAttemptTime,this.timeState.gameplayClock,this.timeState.physicsTickCompletion];
+						timestate = [this.timeState.currentAttemptTime, this.timeState.gameplayClock, this.timeState.physicsTickCompletion];
 					}
 					if (isPressed("left")) {
 						this.replay.currentTickIndex--;
 						this.timeState.timeSinceLoad -= 1000 / PHYSICS_TICK_RATE;
 						this.timeState.currentAttemptTime -= 1000 / PHYSICS_TICK_RATE;
-						timestate = [this.timeState.currentAttemptTime,this.timeState.gameplayClock,this.timeState.physicsTickCompletion];
+						timestate = [this.timeState.currentAttemptTime, this.timeState.gameplayClock, this.timeState.physicsTickCompletion];
 					}
 
 				}
@@ -1079,15 +1104,13 @@ export class Level extends Scheduler {
 			}
 		}
 
-		if (!this.rewinding && !playReplay && this.rewind.frameskipFramecounter == 0)
-		{
+		if (!this.rewinding && !playReplay && this.rewind.frameskipFramecounter == 0) {
 			// this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(1000 / PHYSICS_TICK_RATE)); // Fair enough, its a constant delta t
 			if (this.rewind.frameskip == 0) this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(this.deltaMs)); // bruh timescale breaks down if this is in physics tick
 			else this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(this.deltaMsAccumulator));
 		}
 
-		if (this.rewinding && !playReplay && this.finishTime === null)
-		{
+		if (this.rewinding && !playReplay && this.finishTime === null) {
 			this.rewind.rewindFrame(null);
 			this.updateUI();
 		}
@@ -1103,8 +1126,16 @@ export class Level extends Scheduler {
 		this.updateGameState();
 		
 		AudioManager.updatePositionalAudio(this.timeState, camera.position, this.yaw);
-		this.pitch = Math.max(-Math.PI/2 + Math.PI/4, Math.min(Math.PI/2 - 0.0001, this.pitch)); // The player can't look straight up
+		this.pitch = Math.max(-Math.PI / 2 + Math.PI / 4, Math.min(Math.PI / 2 - 0.0001, this.pitch)); // The player can't look straight up
 		if (tickDone) this.calculatePreemptiveTransforms();
+
+		// Handle pressing of the restart button
+		if (!this.finishTime && isPressed('restart') && !this.pressingRestart) {
+			this.restart();
+			this.pressingRestart = true;
+		} else if (!isPressed('restart')) {
+			this.pressingRestart = false;
+		}
 	}
 	
 	/** Predicts the position of the marble in the next physics tick to allow for smooth, interpolated rendering. */
@@ -1373,7 +1404,7 @@ export class Level extends Scheduler {
 			let endPad = Util.findLast(this.shapes, (shape) => shape instanceof EndPad) as EndPad;
 			endPad?.spawnFirework(this.timeState); // EndPad *might* not exist, in that case no fireworks lol
 
-			this.clearSchedule();
+			this.cancel(this.oobSchedule);
 			if (this.replay.mode !== 'playback') this.schedule(this.timeState.currentAttemptTime + 2000, () => {
 				// Show the finish screen
 				document.exitPointerLock();
@@ -1409,6 +1440,9 @@ export class Level extends Scheduler {
 		this.dispose();
 		
 		this.music.stop();
+		for (let interior of this.interiors) {
+			if (interior instanceof PathedInterior) interior.soundSource?.stop();
+		}
 		for (let shape of this.shapes) {
 			if (shape instanceof Tornado || shape instanceof DuctFan) shape.soundSource?.stop();
 		}

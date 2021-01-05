@@ -159,26 +159,26 @@ export abstract class StorageManager {
 			for (let bestTime of stored.bestTimes[key]) {
 				bestTime[3] = 0; // Set timestamp to 0, indicating that this score shouldn't be uploaded to the leaderboards.
 			}
+		}
+
+		await this.store();
+		await this.storeBestTimes();
+
+		localStorage.removeItem('mb-storage');
 	}
 
-	await this.store();
-	await this.storeBestTimes();
+	static async store() {
+		let obj = Util.shallowClone(this.data);
+		delete obj.bestTimes;
 
-	localStorage.removeItem('mb-storage');
-}
+		await this.databasePut('keyvalue', obj, 'storageData');
+	}
+	
+	static async storeBestTimes() {
+		let string = JSON.stringify(this.data.bestTimes);
+		let compressed = await executeOnWorker('compress', string) as string; // Compress the best times to make them take up less space and harder to modify from the outside.
 
-static async store() {
-	let obj = Util.shallowClone(this.data);
-	delete obj.bestTimes;
-
-	await this.databasePut('keyvalue', obj, 'storageData');
-}
-
-static async storeBestTimes() {
-	let string = JSON.stringify(this.data.bestTimes);
-	let compressed = await executeOnWorker('compress', string) as string; // Compress the best times to make them take up less space and harder to modify from the outside.
-
-	await this.databasePut('keyvalue', compressed, 'bestTimes');
+		await this.databasePut('keyvalue', compressed, 'bestTimes');
 	}
 
 	/** Get the three best times for a mission path. */
@@ -230,15 +230,10 @@ static async storeBestTimes() {
 		return scoreId;
 	}
 
-	static async createTransaction(storeName: string) {
-		let db = await this.idbDatabase;
-		let transaction = db.transaction(storeName, 'readwrite');
-		return transaction;
-	}
-
 	/** Gets an entry from an IndexedDB store by key. */
 	static async databaseGet(storeName: string, key: string) {
-		let transaction = await this.createTransaction(storeName);
+		let db = await this.idbDatabase;
+		let transaction = db.transaction(storeName, 'readonly');
 		let store = transaction.objectStore(storeName);
 		let request = store.get(key);
 
@@ -248,7 +243,8 @@ static async storeBestTimes() {
 
 	/** Puts an entry into an IndexedDB store by key. */
 	static async databasePut(storeName: string, value: any, key?: string) {
-		let transaction = await this.createTransaction(storeName);
+		let db = await this.idbDatabase;
+		let transaction = db.transaction(storeName, 'readwrite');
 		let store = transaction.objectStore(storeName);
 		store.put(value, key);
 
@@ -257,7 +253,8 @@ static async storeBestTimes() {
 
 	/** Deletes an entry from an IndexedDB store by key. */
 	static async databaseDelete(storeName: string, key: string) {
-		let transaction = await this.createTransaction(storeName);
+		let db = await this.idbDatabase;
+		let transaction = db.transaction(storeName, 'readwrite');
 		let store = transaction.objectStore(storeName);
 		store.delete(key);
 
@@ -266,7 +263,8 @@ static async storeBestTimes() {
 
 	/** Counts all entries in an IndexedDB store with a specific key. */
 	static async databaseCount(storeName: string, key: string): Promise<number> {
-		let transaction = await this.createTransaction(storeName);
+		let db = await this.idbDatabase;
+		let transaction = db.transaction(storeName, 'readonly');
 		let store = transaction.objectStore(storeName);
 		let request = store.count(key);
 

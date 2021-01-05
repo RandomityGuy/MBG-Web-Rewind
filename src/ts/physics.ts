@@ -1,7 +1,6 @@
 import { Level, PHYSICS_TICK_RATE } from "./level";
 import { PathedInterior } from "./pathed_interior";
 import OIMO from "./declarations/oimo";
-import * as THREE from "three";
 import { Util } from "./util";
 import { Interior } from "./interior";
 import { Shape } from "./shape";
@@ -112,9 +111,6 @@ export class PhysicsHelper {
 	step() {
 		let prevMarblePosition = this.level.marble.body.getPosition().clone();
 		let prevMarbleTransform = this.level.marble.body.getTransform().clone();
-
-		// Update pathed interior velocities before running the simulation step
-		for (let interior of this.level.interiors) interior.tick(this.level.timeState);
 
 		let gravityBefore = this.world.getGravity().clone();
 		if (this.level.finishTime) {
@@ -239,7 +235,6 @@ export class PhysicsHelper {
 			this.pathedInteriorCollisionWorld.removeRigidBody(body);
 		}
 
-		
 		// Prevent horrible BvhProxy memory leak
 		let world = this.pathedInteriorCollisionWorld as any;
 		world._updateContacts();

@@ -42,10 +42,9 @@ def get_content_type(content):
 
 @app.route('/')
 def main():
-    with open(os.path.join(main_path,"index.html")) as f:
-        resp = Response(f.read());
-        resp.headers["Cache-Control"] = "no-store";
-        return resp;
+    resp = send_file(os.path.join(main_path,"index.html"));
+    resp.headers["Cache-Control"] = "no-store";
+    return resp;
 
 @app.route('/assets/<path:varargs>')
 def assets(varargs):
@@ -59,43 +58,47 @@ def assets(varargs):
             return resp;
     varargs = varargs.split('/');
     path = os.path.join(main_path,"assets",*varargs);
-    with open(path,"rb") as f:
-        resp = Response(f.read());
-        resp.headers["Cache-Control"] = "public, max-age=14400";
-        resp.headers["Content-Type"] = get_content_type;
-        return resp;
+    resp = send_file(path);
+    resp.headers["Cache-Control"] = "public, max-age=14400";
+    resp.headers["Content-Type"] = get_content_type;
+    return resp;
 
 @app.route('/bundles/<path:varargs>')
 def bundles(varargs):
     varargs = varargs.split('/');
     path = os.path.join(main_path,"bundles",*varargs);
-    with open(path,"rb") as f:
-        if (".js" in path):
-            return Response(f.read(),mimetype = "application/javascript");
-        if (".css" in path):
-            return Response(f.read(),mimetype = "text/css");            
-        return f.read();
+    resp = send_file(path);
+    resp.headers["Cache-Control"] = "no-store";
+    if (".js" in path):
+        resp.mimetype = "application/javascript";
+    if (".css" in path):
+        resp.mimetype = "text/css"; 
+    return resp;           
 
 @app.route('/css/<path:varargs>')
 def css(varargs):
     varargs = varargs.split('/');
     path = os.path.join(main_path,"css",*varargs);
-    with open(path,"rb") as f:
-        return Response(f.read(),mimetype = "text/css");
+    resp = send_file(path);
+    resp.mimetype = "text/css";
+    return resp;
 
 @app.route('/js/<path:varargs>')
 def js(varargs):
     varargs = varargs.split('/');
     path = os.path.join(main_path,"js",*varargs);
-    with open(path,"rb") as f:
-        return Response(f.read(),mimetype = "application/javascript");
+    resp = send_file(path);
+    resp.headers["Cache-Control"] = "no-store";
+    resp.mimetype = "application/javascript";
+    return resp;
 
 @app.route('/lib/<path:varargs>')
 def lib(varargs):
     varargs = varargs.split('/');
     path = os.path.join(main_path,"lib",*varargs);
-    with open(path,"rb") as f:
-        return Response(f.read(),mimetype = "application/javascript");
+    resp = send_file(path);
+    resp.mimetype = "application/javascript";
+    return resp;
 
 def scan_directory(path):
     dirstruct = os.listdir(path);

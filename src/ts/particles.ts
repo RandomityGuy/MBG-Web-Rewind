@@ -144,8 +144,8 @@ export class ParticleEmitter {
 	}
 
 	tick(time: number) {
-				// Cap the amount of particles emitted in such a case to prevent lag
-				if (time - this.lastEmitTime >= 1000) this.lastEmitTime = time - 1000;
+		// Cap the amount of particles emitted in such a case to prevent lag
+		if (time - this.lastEmitTime >= 1000) this.lastEmitTime = time - 1000;
 
 		// Spawn as many particles as needed
 		while (this.lastEmitTime + this.currentWaitPeriod <= time) {
@@ -191,7 +191,7 @@ export class ParticleEmitter {
 		this.currPosTime = time;
 		this.vel = this.currPos.clone().sub(this.lastPos).multiplyScalar(1000 / (this.currPosTime - this.lastPosTime));
 	}
-		
+	
 	static cloneOptions(options: ParticleEmitterOptions) {
 		let clone = Util.jsonClone(options);
 		clone.ambientVelocity = new THREE.Vector3(options.ambientVelocity.x, options.ambientVelocity.y, options.ambientVelocity.z);
