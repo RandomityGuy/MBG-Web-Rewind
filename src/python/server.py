@@ -123,7 +123,7 @@ def get_directory_structure():
 def get_custom_level_bitmap():
     id = request.args.get('id');
     if (True):
-        url = f"https://marbleblast.vani.ga/php/get_custom_level_bitmap.php?id={id}";
+        url = f"https://marbleblast.vani.ga/api/custom/{id}.jpg"
         redir = redirect(url);
         redir.headers["X-Requested-With"] = "http://mbgwrewind.pythonanywhere.com";
         redir.headers["Access-Control-Allow-Origin"] = "*";
@@ -209,7 +209,7 @@ def get_custom_level():
         return;
     
     if (USE_PROXY_ASSETS):
-        resp = redirect(f"https://marbleblast.vani.ga/php/get_custom_level.php?id={id}");
+        resp = redirect(f"https://marbleblast.vani.ga/api/custom/{id}.zip");
         resp.headers["X-Requested-With"] = "http://mbgwrewind.pythonanywhere.com";
         resp.headers["Access-Control-Allow-Origin"] = "*";
         resp.headers["Origin"] = "http://mbgwrewind.pythonanywhere.com";
