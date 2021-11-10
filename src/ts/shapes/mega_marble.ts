@@ -13,6 +13,7 @@ export class MegaMarble extends PowerUp {
 	use() {
 		this.level.marble.enableMegaMarble(this.level.timeState);
 		this.level.deselectPowerUp();
-		AudioManager.play(this.sounds[1]);
+		if (!this.level.rewinding)
+			AudioManager.play(this.sounds[1]);
 	}
 }

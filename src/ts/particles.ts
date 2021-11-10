@@ -185,6 +185,7 @@ export class ParticleManager {
 		let emitter = new ParticleEmitter(options, this, getPos, spawnSphereSquish);
 		emitter.currPos = getPos?.() ?? initialPos.clone();
 		emitter.currPosTime = this.getTime();
+		emitter.creationTime = this.getTime();
 		emitter.spawn(this.getTime());
 
 		this.emitters.push(emitter);
@@ -202,7 +203,13 @@ export class ParticleManager {
 			let emitter = this.emitters[i];
 			if (emitter.getPos) emitter.setPos(emitter.getPos(), time);
 			let alive = emitter.tick(time);
+
 			if (!alive) this.emitters.splice(i--, 1);
+
+			// Remove the artifact that was created in a different future cause we rewinded and now we shifted timelines
+			if (emitter.creationTime > time) {
+				this.removeEmitter(emitter);
+			}
 		}
 	}
 

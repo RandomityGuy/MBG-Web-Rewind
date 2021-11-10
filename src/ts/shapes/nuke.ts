@@ -25,7 +25,8 @@ export class Nuke extends Shape {
 		this.disappearTime = time.timeSinceLoad;
 		this.setCollisionEnabled(false);
 
-		AudioManager.play(this.sounds[0]);
+		if (!this.level.rewinding)
+			AudioManager.play(this.sounds[0]);
 		this.level.particles.createEmitter(nukeParticle, this.worldPosition);
 		this.level.particles.createEmitter(nukeSmokeParticle, this.worldPosition);
 		this.level.particles.createEmitter(nukeSparksParticle, this.worldPosition);
@@ -54,6 +55,13 @@ export class Nuke extends Shape {
 		// Enable or disable the collision based on disappear time
 		let visible = time.timeSinceLoad >= this.disappearTime + 15000;
 		this.setCollisionEnabled(visible);
+
+		if (time.timeSinceLoad >= this.disappearTime + 5000 || time.timeSinceLoad < this.disappearTime) {
+			this.setHide(false);
+		}
+		else {
+			this.setHide(true);
+		}
 	}
 
 	render(time: TimeState) {

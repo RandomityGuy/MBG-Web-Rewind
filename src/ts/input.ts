@@ -119,7 +119,8 @@ const gameButtons = {
 	freeLook: [] as string[],
 	restart: [] as string[],
 	pause: [] as string[],
-	blast: [] as string[]
+	blast: [] as string[],
+	rewind: [] as string[],
 };
 
 /** For each game button, a flag indicating whether it has been pressed since the flag was reset. Used to prevent things like entering and immediately leaving the pause menu. */
@@ -137,7 +138,8 @@ const pressedSinceFlag = {
 	freeLook: false,
 	restart: false,
 	pause: false,
-	blast: false
+	blast: false,
+	rewind: false,
 };
 
 /** Set a button's state based on a presser. */

@@ -25,6 +25,17 @@ export class Gem extends Shape {
 		this.matNamesOverride["base.gem"] = color.toLowerCase() + ".gem";
 	}
 
+	setHide(hide: boolean) {
+		if (hide) {
+			this.pickedUp = true;
+			this.setOpacity(0);
+		}
+		else {
+			this.pickedUp = false;
+			this.setOpacity(1);
+		}
+	}
+
 	onMarbleInside(t: number) {
 		if (this.pickedUp) return;
 

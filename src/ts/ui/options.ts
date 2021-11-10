@@ -16,7 +16,8 @@ export const buttonToDisplayNameMbg: Record<keyof typeof StorageManager.data.set
 	cameraRight: 'Rotate Camera Right',
 	freeLook: 'Free Look',
 	restart: 'Restart',
-	blast: 'Use Blast'
+	blast: 'Use Blast',
+	rewind: 'Rewind'
 };
 export const buttonToDisplayNameMbp: Record<keyof typeof StorageManager.data.settings.gameButtonMapping, string> = {
 	up: 'Move Forward',
@@ -31,7 +32,8 @@ export const buttonToDisplayNameMbp: Record<keyof typeof StorageManager.data.set
 	cameraRight: 'Look Right',
 	freeLook: 'Free Look',
 	restart: 'Respawn',
-	blast: 'Use Blast'
+	blast: 'Use Blast',
+	rewind: 'Rewind'
 };
 
 export abstract class OptionsScreen {

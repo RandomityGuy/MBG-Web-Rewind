@@ -32,7 +32,8 @@ export class SuperSpeed extends PowerUp {
 
 		marble.body.linearVelocity.addScaledVector(movementVector, 24.7); // Whirligig's determined value (ok it's actually 25 but we ain't changing it)
 
-		AudioManager.play(this.sounds[1]);
+		if (!this.level.rewinding)
+			AudioManager.play(this.sounds[1]);
 		this.level.particles.createEmitter(superSpeedParticleOptions, null, () => marble.body.position.clone());
 
 		this.level.deselectPowerUp();

@@ -975,6 +975,17 @@ export class Shape {
 		}
 	}
 
+	setHide(hide: boolean) {
+		if (hide) {
+			this.setCollisionEnabled(false);
+			this.setOpacity(0);
+		}
+		else {
+			this.setCollisionEnabled(true);
+			this.setOpacity(1);
+		}
+	}
+
 	reset() {
 		this.isCurrentlyColliding = false;
 	}

@@ -71,6 +71,8 @@ import { Quaternion } from "./math/quaternion";
 import { Euler } from "./math/euler";
 import { OrthographicCamera, PerspectiveCamera } from "./rendering/camera";
 import { Plane } from "./math/plane";
+import { Rewind } from "./rewind/rewind";
+import { RewindManager } from "./rewind/rewind_manager";
 
 /** How often the physics will be updated, per second. */
 export const PHYSICS_TICK_RATE = 120;
@@ -239,6 +241,18 @@ export class Level extends Scheduler {
 	originalMusicName: string;
 	replay: Replay;
 
+	// Rewind 
+	rewinding = false;
+	rewind: Rewind;
+	lastRewinding = false;
+	
+	deltaMs: number; // Why isnt this stored anywhere
+	deltaMsAccumulator: number;
+	oobSchedule: number;
+
+	// Replay controls
+	isReplayPaused: boolean = false;
+
 	constructor(mission: Mission, offline = false) {
 		super();
 		this.mission = mission;
@@ -285,6 +299,14 @@ export class Level extends Scheduler {
 		this.scene.compile(); this.loadingState.loaded += 1;
 
 		this.replay = new Replay(this);
+
+		this.rewind = new Rewind();
+		this.rewind.rewindManager = new RewindManager();
+		this.rewind.rewindManager.level = this;
+		this.rewind.timescale = StorageManager.data.settings.rewindTimescale;
+		this.rewind.matchfps = StorageManager.data.settings.rewindMatchFPS;
+		// this.rewind.frameskip = Math.floor(Util.lerp(0,4,StorageManager.data.settings.rewindQuality));
+		this.rewind.frameskipFramecounter = 0;
 	}
 
 	async start() {
@@ -772,6 +794,7 @@ export class Level extends Scheduler {
 		this.lastPhysicsTick = null;
 		this.maxDisplayedTime = 0;
 		this.blastAmount = 0;
+		this.rewind.frameskipFramecounter = 0;
 		this.gemCount = 0;
 
 		this.currentCheckpoint = null;
@@ -844,6 +867,33 @@ export class Level extends Scheduler {
 		this.schedule(5500, () => {
 			if (!this.outOfBounds) hud.setCenterText('none');
 		});
+
+		this.rewind.rewindManager.clear();
+		this.rewind.previousFrame = null;
+		this.rewinding = false;
+	}
+
+	updateGameState()
+	{
+		let hud = state.menu.hud;
+		if (this.timeState.currentAttemptTime < 500) {
+			hud.setCenterText('none');
+		}
+		if (this.timeState.currentAttemptTime >= 500 && this.timeState.currentAttemptTime < 2000) {
+			hud.setCenterText('ready');
+		}
+		if (this.timeState.currentAttemptTime >= 2000 && this.timeState.currentAttemptTime < GO_TIME) {
+			hud.setCenterText('set');
+		}
+		if (this.timeState.currentAttemptTime >= GO_TIME && this.timeState.currentAttemptTime < 5500) {
+			hud.setCenterText('go');
+		}
+		if (this.timeState.currentAttemptTime >= 5500) {
+			hud.setCenterText('none');
+		}
+		if (this.outOfBounds){
+			hud.setCenterText('outofbounds');
+		}
 	}
 
 	tryRender() {
@@ -1039,6 +1089,8 @@ export class Level extends Scheduler {
 		if (time === undefined) time = performance.now();
 		let playReplay = this.replay.mode === 'playback';
 
+		this.rewinding = isPressed('rewind');
+
 		if (!playReplay && !state.menu.finishScreen.showing && (isPressed('use') || this.useQueued) && getPressedFlag('use')) {
 			if (this.outOfBounds && !this.finishTime) {
 				// Skip the out of bounds "animation" and restart immediately
@@ -1071,9 +1123,17 @@ export class Level extends Scheduler {
 			this.lastPhysicsTick = time - 1000;
 		}
 
+		if (this.rewind.frameskip !== 0) {
+			if ((this.rewind.frameskipFramecounter % this.rewind.frameskip) == 0) this.deltaMsAccumulator = 0;
+			this.deltaMsAccumulator += elapsed;
+		}
+
+		this.deltaMs = elapsed;
+
 		let tickDone = false;
 		// Make sure to execute the correct amount of ticks
 		while (elapsed >= 1000 / PHYSICS_TICK_RATE) {
+			let timestate = [this.timeState.currentAttemptTime, this.timeState.gameplayClock, this.timeState.physicsTickCompletion];
 			let prevGameplayClock = this.timeState.gameplayClock;
 
 			// Update gameplay clock, taking into account the Time Travel state
@@ -1178,6 +1238,27 @@ export class Level extends Scheduler {
 			}
 		}
 
+		if (!this.rewinding && !playReplay && this.rewind.frameskipFramecounter == 0) {
+			// this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(1000 / PHYSICS_TICK_RATE)); // Fair enough, its a constant delta t
+			if (this.rewind.frameskip == 0) this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(this.deltaMs)); // bruh timescale breaks down if this is in physics tick
+			else this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(this.deltaMsAccumulator));
+		}
+
+		if (this.rewinding && !playReplay && this.finishTime === null) {
+			this.rewind.rewindFrame(null);
+			this.updateUI();
+		}
+	
+		
+		if (this.lastRewinding && !this.rewinding && !playReplay) // We just stopped rewinding, so edit out the replay
+		{
+			this.rewind.rewindManager.spliceReplay(this.timeState.currentAttemptTime);
+		}
+		
+		this.lastRewinding = this.rewinding;
+		
+		this.updateGameState();
+
 		AudioManager.updatePositionalAudio(this.timeState, this.camera.position, this.yaw);
 		this.pitch = Math.max(-Math.PI/2 + Math.PI/4, Math.min(Math.PI/2 - 0.0001, this.pitch)); // The player can't look straight up
 		if (tickDone) this.marble.calculatePredictiveTransforms();
@@ -1196,6 +1277,10 @@ export class Level extends Scheduler {
 			if (this.restartPressTime !== null && performance.now() - this.restartPressTime >= 1000)
 				this.restart(true);
 		}
+	}
+	updateUI() {
+		state.menu.hud.displayGemCount(this.gemCount, this.totalGems);
+		this.updateGameState();
 	}
 
 	/** Get the current interpolated orientation quaternion. */
@@ -1316,8 +1401,22 @@ export class Level extends Scheduler {
 			overlayShape.setOpacity(Number(overlayShape.dtsPath === powerUp.dtsPath));
 		}
 
-		if (playPickUpSound) AudioManager.play(powerUp.sounds[0]);
+		if (playPickUpSound && !this.rewinding) AudioManager.play(powerUp.sounds[0]);
 
+		return true;
+	}
+
+	setPowerUp(powerUp: PowerUp) {
+		if (this.heldPowerUp && powerUp.constructor === this.heldPowerUp.constructor) return false;
+		this.heldPowerUp = powerUp;
+		
+		for (let overlayShape of this.overlayShapes) {
+			if (overlayShape.dtsPath.includes("gem")) continue;
+			
+			// Show the corresponding icon in the HUD
+			overlayShape.setOpacity(Number(overlayShape.dtsPath === powerUp.dtsPath));
+		}
+		
 		return true;
 	}
 
@@ -1343,7 +1442,8 @@ export class Level extends Scheduler {
 		// Show a notification (and play a sound) based on the gems remaining
 		if (this.gemCount === this.totalGems) {
 			string = `You have all the ${gemWord}s, head for the finish!`;
-			AudioManager.play('gotallgems.wav');
+			if (!this.rewinding)
+				AudioManager.play('gotallgems.wav');
 
 			// Some levels with this package end immediately upon collection of all gems
 			if (this.mission.misFile.activatedPackages.includes('endWithTheGems')) {
@@ -1358,8 +1458,8 @@ export class Level extends Scheduler {
 			} else {
 				string += `${remaining} ${gemWord}s to go!`;
 			}
-
-			AudioManager.play('gotgem.wav');
+			if (!this.rewinding)
+				AudioManager.play('gotgem.wav');
 		}
 
 		state.menu.hud.displayAlert(string);

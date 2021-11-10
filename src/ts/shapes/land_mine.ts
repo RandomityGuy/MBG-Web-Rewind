@@ -26,7 +26,8 @@ export class LandMine extends Shape {
 		this.disappearTime = time.timeSinceLoad;
 		this.setCollisionEnabled(false);
 
-		AudioManager.play(this.sounds[0]);
+		if (!this.level.rewinding)
+			AudioManager.play(this.sounds[0]);
 		this.level.particles.createEmitter(landMineParticle, this.worldPosition);
 		this.level.particles.createEmitter(landMineSmokeParticle, this.worldPosition);
 		this.level.particles.createEmitter(landMineSparksParticle, this.worldPosition);
@@ -54,6 +55,13 @@ export class LandMine extends Shape {
 		// Enable or disable the collision based on disappear time
 		let visible = time.timeSinceLoad >= this.disappearTime + 5000;
 		this.setCollisionEnabled(visible);
+
+		if (time.timeSinceLoad >= this.disappearTime + 5000 || time.timeSinceLoad < this.disappearTime) {
+			this.setHide(false);
+		}
+		else {
+			this.setHide(true);
+		}
 	}
 
 	render(time: TimeState) {

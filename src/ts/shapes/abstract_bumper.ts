@@ -33,6 +33,11 @@ export abstract class AbstractBumper extends Shape {
 	render(time: TimeState) {
 		let currentCompletion = Util.clamp((time.timeSinceLoad - this.wiggleAnimationStart) / this.animationDuration, 0, 1);
 
+		// Fix the wiggle for rewind like bruh
+		if (time.timeSinceLoad < this.wiggleAnimationStart) {
+			this.wiggleAnimationStart = -Infinity;
+		}
+
 		// Override the keyframe for the "wiggle" effect
 		this.sequenceKeyframeOverride.set(this.dts.sequences[0], currentCompletion * (this.dts.sequences[0].numKeyframes - 1));
 

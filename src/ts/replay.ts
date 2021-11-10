@@ -26,6 +26,10 @@ export class Replay {
 	/** The timestamp at the moment of saving (serializing) the replay. */
 	timestamp: number;
 
+	/** The internal timer running since mission load */ // Pls why wasnt this there already, could have sped up replay edits by 10 billion percent
+	currentAttemptTimes: number[] = [];
+	/** The time on the timer */
+	gameClockTimes: number[] = [];
 	/** The position of the marble at each physics tick. */
 	marblePositions: Vector3[] = [];
 	/** The orientation of the marble at each physics tick. */
@@ -137,6 +141,8 @@ export class Replay {
 
 			this.canStore = true;
 			this.isInvalid = false;
+			this.gameClockTimes.length = 0;
+			this.currentAttemptTimes.length = 0;
 			this.marblePositions.length = 0;
 			this.marbleOrientations.length = 0;
 			this.marbleLinearVelocities.length = 0;
@@ -232,6 +238,8 @@ export class Replay {
 
 		let marble = this.level.marble;
 
+		this.gameClockTimes.push(this.level.timeState.gameplayClock);
+		this.currentAttemptTimes.push(this.level.timeState.currentAttemptTime);
 		this.marblePositions.push(marble.body.position.clone());
 		this.marbleOrientations.push(marble.body.orientation.clone());
 		this.marbleLinearVelocities.push(marble.body.linearVelocity.clone());
@@ -368,8 +376,16 @@ export class Replay {
 		this.level.marble.body.orientation.copy(this.marbleOrientations[i]);
 		this.level.marble.body.linearVelocity.copy(this.marbleLinearVelocities[i]);
 		this.level.marble.body.angularVelocity.copy(this.marbleAngularVelocities[i]);
-		this.level.yaw = this.cameraOrientations[i].yaw;
-		this.level.pitch = this.cameraOrientations[i].pitch;
+		// this.level.yaw = this.cameraOrientations[i].yaw;
+		// this.level.pitch = this.cameraOrientations[i].pitch;
+
+		if (this.currentAttemptTimes !== null) {
+			this.level.timeState.currentAttemptTime = this.currentAttemptTimes[i];
+		}
+
+		if (this.gameClockTimes !== null) {
+			this.level.timeState.gameplayClock = this.gameClockTimes[i];
+		}
 
 		for (let j = this.currentJumpSoundTime; j < this.jumpSoundTimes.length; j++) {
 			if (this.jumpSoundTimes[j] > i) break;
@@ -402,8 +418,11 @@ export class Replay {
 		// First, create a more compact object by utilizing typed arrays.
 		let serialized: SerializedReplay = {
 			version: this.version,
+			game: "Rewind",
 			timestamp: Date.now(),
 			missionPath: this.missionPath,
+			gameClockTimes: Util.arrayBufferToString(new Float32Array(this.gameClockTimes).buffer),
+			currentAttemptTimes: Util.arrayBufferToString(new Float32Array(this.currentAttemptTimes).buffer),
 			marblePositions: Util.arrayBufferToString(Replay.vec3sToBuffer(this.marblePositions).buffer),
 			marbleOrientations: Util.arrayBufferToString(Replay.quatsToBuffer(this.marbleOrientations).buffer),
 			marbleLinearVelocities: Util.arrayBufferToString(Replay.vec3sToBuffer(this.marbleLinearVelocities).buffer),
@@ -448,6 +467,8 @@ export class Replay {
 		replay.missionPath = (version >= 1)? serialized.missionPath : null;
 		replay.timestamp = (version >= 1)? serialized.timestamp : 0;
 
+		replay.gameClockTimes = [...new Float32Array(Util.stringToArrayBuffer(serialized.gameClockTimes))];
+		replay.currentAttemptTimes = [...new Float32Array(Util.stringToArrayBuffer(serialized.currentAttemptTimes))];
 		replay.marblePositions = Replay.bufferToVec3s(new Float32Array(Util.stringToArrayBuffer(serialized.marblePositions)));
 		replay.marbleOrientations = Replay.bufferToQuats(new Float32Array(Util.stringToArrayBuffer(serialized.marbleOrientations)));
 		replay.marbleLinearVelocities = Replay.bufferToVec3s(new Float32Array(Util.stringToArrayBuffer(serialized.marbleLinearVelocities)));
@@ -579,9 +600,12 @@ export class Replay {
 export interface SerializedReplay {
 	/** The version of the replay, used for compatibility. */
 	version: number,
+	game: string,
 	missionPath: string,
 	timestamp: number,
 
+	gameClockTimes: string;
+	currentAttemptTimes: string;
 	marblePositions: string;
 	marbleOrientations: string;
 	marbleLinearVelocities: string;
