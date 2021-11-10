@@ -11,10 +11,12 @@ export class MbgOptionsScreen extends OptionsScreen {
 	tabGraphics: HTMLImageElement;
 	tabAudio: HTMLImageElement;
 	tabControls: HTMLImageElement;
+	tabRewind: HTMLImageElement;
 
 	graphicsDiv: HTMLDivElement;
 	audioDiv: HTMLDivElement;
 	controlsDiv: HTMLDivElement;
+	rewindDiv: HTMLDivElement;
 
 	resolution640: HTMLImageElement;
 	resolution800: HTMLImageElement;
@@ -45,10 +47,23 @@ export class MbgOptionsScreen extends OptionsScreen {
 	draggingMouseSensitivity = false;
 	soundTestingSound: AudioSource = null;
 
+	// Rewind stuff
+	timescaleTrack: HTMLImageElement;
+	timescaleKnob: HTMLImageElement;
+	qualityTrack: HTMLImageElement;
+	qualityKnob: HTMLImageElement;
+	draggingTimeScale = false;
+	draggingQuality = false;
+	timescaleKnobLeft = 160; // The left-most position of the knob
+	qualityKnobLeft = 160;
+	matchFPSCheckbox: HTMLImageElement;
+	ghostsCheckbox: HTMLImageElement;
+
 	controlsBackground: HTMLImageElement;
 	marbleTab: HTMLImageElement; // it's not
 	cameraTab: HTMLImageElement;
 	mouseTab: HTMLImageElement;
+
 	marbleControlsDiv: HTMLDivElement;
 	cameraControlsDiv: HTMLDivElement;
 	mouseControlsDiv: HTMLDivElement;
@@ -59,6 +74,7 @@ export class MbgOptionsScreen extends OptionsScreen {
 	buttonMarbleDown: HTMLImageElement;
 	buttonMarbleUse: HTMLImageElement;
 	buttonMarbleJump: HTMLImageElement;
+	buttonRewind: HTMLImageElement;
 
 	buttonMarbleLeftContent: HTMLParagraphElement;
 	buttonMarbleRightContent: HTMLParagraphElement;
@@ -66,6 +82,7 @@ export class MbgOptionsScreen extends OptionsScreen {
 	buttonMarbleDownContent: HTMLParagraphElement;
 	buttonMarbleUseContent: HTMLParagraphElement;
 	buttonMarbleJumpContent: HTMLParagraphElement;
+	buttonRewindContent: HTMLParagraphElement;
 
 	buttonCameraLeft: HTMLImageElement;
 	buttonCameraRight: HTMLImageElement;
@@ -106,10 +123,12 @@ export class MbgOptionsScreen extends OptionsScreen {
 		this.tabGraphics = document.querySelector('#tab-graphics') as HTMLImageElement;
 		this.tabAudio = document.querySelector('#tab-audio') as HTMLImageElement;
 		this.tabControls = document.querySelector('#tab-controls') as HTMLImageElement;
+		this.tabRewind = document.querySelector('#tab-rewind') as HTMLImageElement;
 
 		this.graphicsDiv = document.querySelector('#options-graphics') as HTMLDivElement;
 		this.audioDiv = document.querySelector('#options-audio') as HTMLDivElement;
 		this.controlsDiv = document.querySelector('#options-controls') as HTMLDivElement;
+		this.rewindDiv = document.querySelector('#options-rewind') as HTMLDivElement;
 
 		this.resolution640 = document.querySelector('#graphics-640') as HTMLImageElement;
 		this.resolution800 = document.querySelector('#graphics-800') as HTMLImageElement;
@@ -132,6 +151,11 @@ export class MbgOptionsScreen extends OptionsScreen {
 		this.soundVolumeTrack = document.querySelector('#audio-sound-track') as HTMLImageElement;
 		this.soundVolumeKnob = document.querySelector('#audio-sound-knob') as HTMLImageElement;
 
+		this.timescaleKnob = document.querySelector('#rewind-timescale-knob') as HTMLImageElement;
+		this.timescaleTrack = document.querySelector('#rewind-timescale') as HTMLImageElement;
+		this.qualityKnob = document.querySelector('#rewind-quality-knob') as HTMLImageElement;
+		this.qualityTrack = document.querySelector('#rewind-quality') as HTMLImageElement;
+
 		this.controlsBackground = document.querySelector('#controls-background') as HTMLImageElement;
 		this.marbleTab = document.querySelector('#tab-marble') as HTMLImageElement; // it's not
 		this.cameraTab = document.querySelector('#tab-camera') as HTMLImageElement;
@@ -146,6 +170,7 @@ export class MbgOptionsScreen extends OptionsScreen {
 		this.buttonMarbleDown = document.querySelector('#button-marble-down') as HTMLImageElement;
 		this.buttonMarbleUse = document.querySelector('#button-marble-use') as HTMLImageElement;
 		this.buttonMarbleJump = document.querySelector('#button-marble-jump') as HTMLImageElement;
+		this.buttonRewind = document.querySelector('#button-rewind') as HTMLImageElement;
 
 		this.buttonMarbleLeftContent = document.querySelector('#button-marble-left-content') as HTMLParagraphElement;
 		this.buttonMarbleRightContent = document.querySelector('#button-marble-right-content') as HTMLParagraphElement;
@@ -153,6 +178,7 @@ export class MbgOptionsScreen extends OptionsScreen {
 		this.buttonMarbleDownContent = document.querySelector('#button-marble-down-content') as HTMLParagraphElement;
 		this.buttonMarbleUseContent = document.querySelector('#button-marble-use-content') as HTMLParagraphElement;
 		this.buttonMarbleJumpContent = document.querySelector('#button-marble-jump-content') as HTMLParagraphElement;
+		this.buttonRewindContent = document.querySelector('#button-rewind-content') as HTMLParagraphElement;
 
 		this.buttonCameraLeft = document.querySelector('#button-camera-left') as HTMLImageElement;
 		this.buttonCameraRight = document.querySelector('#button-camera-right') as HTMLImageElement;
@@ -178,6 +204,9 @@ export class MbgOptionsScreen extends OptionsScreen {
 		this.buttonRestartLevel = document.querySelector('#button-restart-level') as HTMLImageElement;
 		this.buttonRestartLevelContent = document.querySelector('#button-restart-level-content') as HTMLParagraphElement;
 		this.reflectiveMarbleCheckbox = document.querySelector('#graphics-reflective-marble') as HTMLImageElement;
+
+		this.matchFPSCheckbox = document.querySelector('#rewind-matchfps') as HTMLImageElement;
+		this.ghostsCheckbox = document.querySelector('#rewind-ghosts') as HTMLImageElement;
 	}
 
 	constructor(menu: Menu) {
@@ -212,10 +241,10 @@ export class MbgOptionsScreen extends OptionsScreen {
 		menu.setupButton(this.graphicsApply, 'options/grafapply', () => {});
 
 		const handler = () => {
-			if (!this.draggingMusicVolume && !this.draggingSoundVolume && !this.draggingMouseSensitivity) return;
+			if (!this.draggingMusicVolume && !this.draggingSoundVolume && !this.draggingMouseSensitivity && !this.draggingTimeScale && !this.draggingQuality) return;
 
 			// Release all dragging things
-			this.draggingMusicVolume = this.draggingSoundVolume = this.draggingMouseSensitivity = false;
+			this.draggingMusicVolume = this.draggingSoundVolume = this.draggingMouseSensitivity = this.draggingTimeScale = this.draggingQuality = false;
 			StorageManager.store();
 
 			if (this.soundTestingSound) {
@@ -234,6 +263,14 @@ export class MbgOptionsScreen extends OptionsScreen {
 		this.soundVolumeTrack.addEventListener('touchstart', () => this.draggingSoundVolume = true);
 		this.soundVolumeKnob.addEventListener('mousedown', () => this.draggingSoundVolume = true);
 		this.soundVolumeKnob.addEventListener('touchstart', () => this.draggingSoundVolume = true);
+		this.timescaleKnob.addEventListener('mousedown', () => this.draggingTimeScale = true);
+		this.timescaleKnob.addEventListener('touchstart', () => this.draggingTimeScale = true);
+		this.timescaleTrack.addEventListener('mousedown', () => this.draggingTimeScale = true);
+		this.timescaleTrack.addEventListener('touchstart', () => this.draggingTimeScale = true);
+		this.qualityKnob.addEventListener('mousedown', () => this.draggingQuality = true);
+		this.qualityKnob.addEventListener('touchstart', () => this.draggingQuality = true);
+		this.qualityTrack.addEventListener('mousedown', () => this.draggingQuality = true);
+		this.qualityTrack.addEventListener('touchstart', () => this.draggingQuality = true);
 
 		requestAnimationFrame(() => this.updateSliders());
 
@@ -247,6 +284,7 @@ export class MbgOptionsScreen extends OptionsScreen {
 		menu.setupButton(this.buttonMarbleDown, 'options/cntr_mrb_bak', () => this.changeKeybinding('down'));
 		menu.setupButton(this.buttonMarbleUse, 'options/cntr_mrb_pwr', () => this.changeKeybinding('use'));
 		menu.setupButton(this.buttonMarbleJump, 'options/cntr_mrb_jmp', () => this.changeKeybinding('jump'));
+		menu.setupButton(this.buttonRewind, 'options/cntr_rwnd', () => this.changeKeybinding('rewind'));
 
 		menu.setupButton(this.buttonCameraLeft, 'options/cntr_cam_lft', () => this.changeKeybinding('cameraLeft'));
 		menu.setupButton(this.buttonCameraRight, 'options/cntr_cam_rt', () => this.changeKeybinding('cameraRight'));
@@ -310,6 +348,34 @@ export class MbgOptionsScreen extends OptionsScreen {
 				this.reflectiveMarbleCheckbox.src = './assets/ui/options/cntrl_mous_freel_h.png';
 			}
 		});
+
+		menu.setupButton(this.matchFPSCheckbox, 'options/graf_chkbx', () => {
+			StorageManager.data.settings.rewindMatchFPS = !this.matchFPSCheckbox.hasAttribute('data-locked');
+			StorageManager.store();
+
+			// Toggle the checkbox
+			if (!this.matchFPSCheckbox.hasAttribute('data-locked')) {
+				this.matchFPSCheckbox.setAttribute('data-locked', '');
+				this.matchFPSCheckbox.src = './assets/ui/options/graf_chkbx_d.png';
+			} else {
+				this.matchFPSCheckbox.removeAttribute('data-locked');
+				this.matchFPSCheckbox.src = './assets/ui/options/graf_chkbx_h.png';
+			}
+		});
+
+		menu.setupButton(this.ghostsCheckbox, 'options/graf_chkbx', () => {
+			StorageManager.data.settings.rewindGhosts = !this.ghostsCheckbox.hasAttribute('data-locked');
+			StorageManager.store();
+
+			// Toggle the checkbox
+			if (!this.ghostsCheckbox.hasAttribute('data-locked')) {
+				this.ghostsCheckbox.setAttribute('data-locked', '');
+				this.ghostsCheckbox.src = './assets/ui/options/graf_chkbx_d.png';
+			} else {
+				this.ghostsCheckbox.removeAttribute('data-locked');
+				this.ghostsCheckbox.src = './assets/ui/options/graf_chkbx_h.png';
+			}
+		});
 	}
 
 	show() {
@@ -323,6 +389,7 @@ export class MbgOptionsScreen extends OptionsScreen {
 		this.setupTab(this.tabGraphics, 'graphics');
 		this.setupTab(this.tabAudio, 'audio');
 		this.setupTab(this.tabControls, 'controls');
+		this.setupTab(this.tabRewind, 'rewind');
 		// Default selection
 		this.selectControlsTab('marble');
 		this.selectTab('graphics');
@@ -342,6 +409,9 @@ export class MbgOptionsScreen extends OptionsScreen {
 		this.soundVolumeKnob.style.left = Math.floor(this.soundVolumeKnobLeft + StorageManager.data.settings.soundVolume * this.trackLength) + 'px';
 		this.mouseSensitivityKnob.style.left = Math.floor(this.mouseSensitivityKnobLeft + StorageManager.data.settings.mouseSensitivity * this.trackLength) + 'px';
 
+		this.timescaleKnob.style.left = Math.floor(this.timescaleKnobLeft + StorageManager.data.settings.rewindTimescale * this.trackLength) + 'px';
+		this.qualityKnob.style.left = Math.floor(this.qualityKnobLeft + StorageManager.data.settings.rewindQuality * this.trackLength) + 'px';
+
 		this.refreshKeybindings();
 
 		if (!!(StorageManager.data.settings.invertMouse & 0b10) !== this.invertY.hasAttribute('data-locked')) this.invertY.click();
@@ -351,22 +421,22 @@ export class MbgOptionsScreen extends OptionsScreen {
 		this.setResetMarbleTextureState(!((await StorageManager.databaseCount('keyvalue', 'marbleTexture')) === 0));
 	}
 
-	selectTab(which: 'graphics' | 'audio' | 'controls') {
-		for (let elem of [this.tabGraphics, this.tabAudio, this.tabControls]) {
+	selectTab(which: 'graphics' | 'audio' | 'controls' | 'rewind') {
+		for (let elem of [this.tabGraphics, this.tabAudio, this.tabControls, this.tabRewind]) {
 			elem.style.zIndex = "-1";
 		}
-		for (let elem of [this.graphicsDiv, this.audioDiv, this.controlsDiv]) {
+		for (let elem of [this.graphicsDiv, this.audioDiv, this.controlsDiv, this.rewindDiv]) {
 			elem.classList.add('hidden');
 		}
 
-		let index = ['graphics', 'audio', 'controls'].indexOf(which);
+		let index = ['graphics', 'audio', 'controls', 'rewind'].indexOf(which);
 
-		let elem = [this.tabGraphics, this.tabAudio, this.tabControls][index];
+		let elem = [this.tabGraphics, this.tabAudio, this.tabControls, this.tabRewind][index];
 		elem.style.zIndex = "0";
-		[this.graphicsDiv, this.audioDiv, this.controlsDiv][index].classList.remove('hidden');
+		[this.graphicsDiv, this.audioDiv, this.controlsDiv, this.rewindDiv][index].classList.remove('hidden');
 	}
 
-	setupTab(element: HTMLImageElement, which: 'graphics' | 'audio' | 'controls') {
+	setupTab(element: HTMLImageElement, which: 'graphics' | 'audio' | 'controls' | 'rewind') {
 		element.addEventListener('mousedown', (e) => {
 			if (e.button !== 0) return;
 			AudioManager.play('buttonpress.wav');
@@ -477,6 +547,22 @@ export class MbgOptionsScreen extends OptionsScreen {
 			this.mouseSensitivityKnob.style.left = Math.floor(this.mouseSensitivityKnobLeft + completion * this.trackLength) + 'px';
 			StorageManager.data.settings.mouseSensitivity = completion;
 		}
+
+		if (this.draggingTimeScale) {
+			let leftStart = this.div.getBoundingClientRect().left + this.timescaleKnobLeft;
+			let completion = Util.clamp(((currentMousePosition.x - 12) - leftStart) / this.trackLength, 0, 1);
+
+			this.timescaleKnob.style.left = Math.floor(this.timescaleKnobLeft + completion * this.trackLength) + 'px';
+			StorageManager.data.settings.rewindTimescale = completion;
+		}
+
+		if (this.draggingQuality) {
+			let leftStart = this.div.getBoundingClientRect().left + this.qualityKnobLeft;
+			let completion = Util.clamp(((currentMousePosition.x - 12) - leftStart) / this.trackLength, 0, 1);
+
+			this.qualityKnob.style.left = Math.floor(this.qualityKnobLeft + completion * this.trackLength) + 'px';
+			StorageManager.data.settings.rewindQuality = completion;
+		}
 	}
 
 	selectControlsTab(which: 'marble' | 'camera' | 'mouse') {
@@ -513,6 +599,7 @@ export class MbgOptionsScreen extends OptionsScreen {
 		this.buttonCameraDownContent.textContent = this.formatKeybinding('cameraDown');
 		this.freeLookKeyContent.textContent = this.formatKeybinding('freeLook');
 		this.buttonRestartLevelContent.textContent = this.formatKeybinding('restart');
+		this.buttonRewindContent.textContent = this.formatKeybinding('rewind');
 	}
 
 	setResetMarbleTextureState(enabled: boolean) {
