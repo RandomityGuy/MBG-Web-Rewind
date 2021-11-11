@@ -232,6 +232,7 @@ export class Level extends Scheduler {
 	/** Up vector at the point of checkpointing */
 	checkpointUp: Vector3 = null;
 	checkpointBlast: number = null;
+	respawnTimes: number = 0;
 
 	timeTravelSound: AudioSource;
 	/** The alarm that plays in MBP when the player is about to pass the "par time". */
@@ -771,6 +772,7 @@ export class Level extends Scheduler {
 		if (!forceHardRestart && this.currentCheckpoint && this.replay.mode !== 'playback') {
 			// There's a checkpoint, so load its state instead of restarting the whole level
 			this.loadCheckpointState();
+			this.respawnTimes++;
 			return;
 		}
 
@@ -795,6 +797,7 @@ export class Level extends Scheduler {
 		this.maxDisplayedTime = 0;
 		this.blastAmount = 0;
 		this.rewind.frameskipFramecounter = 0;
+		this.respawnTimes = 0;
 		this.gemCount = 0;
 
 		this.currentCheckpoint = null;
@@ -1210,30 +1213,18 @@ export class Level extends Scheduler {
 			if (this.timeState.currentAttemptTime >= GO_TIME && isFinite(this.mission.qualifyTime) && state.modification === 'platinum' && !this.finishTime) {
 				let alarmStart = this.mission.computeAlarmStartTime();
 
-				if (prevGameplayClock <= alarmStart && this.timeState.gameplayClock >= alarmStart && !this.alarmSound) {
+				if (prevGameplayClock <= alarmStart && this.timeState.gameplayClock >= alarmStart) {
 					// Start the alarm
 					this.alarmSound = AudioManager.createAudioSource('alarm.wav');
 					this.alarmSound.setLoop(true);
 					this.alarmSound.play();
 					state.menu.hud.displayHelp(`You have ${(this.mission.qualifyTime - alarmStart) / 1000} seconds remaining.`, true);
-				}
-				if (prevGameplayClock < this.mission.qualifyTime && this.timeState.gameplayClock >= this.mission.qualifyTime) {
+				} else if ((prevGameplayClock < this.mission.qualifyTime && this.timeState.gameplayClock >= this.mission.qualifyTime && !this.rewinding) || (this.rewinding && this.timeState.gameplayClock <= this.mission.qualifyTime && prevGameplayClock >= this.mission.qualifyTime)) {
 					// Stop the alarm
 					this.alarmSound?.stop();
 					this.alarmSound = null;
 					state.menu.hud.displayHelp("The clock has passed the Par Time.", true);
 					AudioManager.play('alarm_timeout.wav');
-				}
-			}
-
-			// Record or playback the replay
-			if (!playReplay) {
-				this.replay.record();
-			} else {
-				this.replay.playBack();
-				if (this.replay.isPlaybackComplete()) {
-					this.stopAndExit();
-					return;
 				}
 			}
 		}

@@ -376,6 +376,7 @@ class Particle {
 	}
 
 	isAlive(time: number) {
+		if (time < this.spawnTime) return false;
 		let elapsed = time - this.spawnTime;
 		let completion = Util.clamp(elapsed / this.lifetime, 0, 1);
 

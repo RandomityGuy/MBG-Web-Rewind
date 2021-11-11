@@ -46,7 +46,12 @@ export class RandomPowerUp extends PowerUp {
 					// Save the random choice to the replay
 					let arr = this.level.replay.randomPowerUpChoices.get(this.id);
 					if (!arr) arr = [], this.level.replay.randomPowerUpChoices.set(this.id, arr);
-					arr.push(POSSIBLE_POWERUPS.indexOf(Random));
+					if (arr.length >= this.pickedUpCount) {
+						arr = arr.slice(0, this.pickedUpCount);
+						arr[this.pickedUpCount - 1] = POSSIBLE_POWERUPS.indexOf(random);
+						this.level.replay.randomPowerUpChoices.set(this.id, arr);
+					} else
+						arr.push(POSSIBLE_POWERUPS.indexOf(random));
 				}
 
 				return true;

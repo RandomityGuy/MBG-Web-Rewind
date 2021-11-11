@@ -8,16 +8,21 @@ import { Frame, MPState } from "./frame";
 import { Util } from "../util";
 import { setEmitFlags } from "typescript";
 import { PathedInterior } from "../pathed_interior";
+import { RandomPowerUp } from "../shapes/random_power_up";
+import { TeleportTrigger } from "../triggers/teleport_trigger";
+import { Nuke } from "../shapes/nuke";
 
 class MissionState {
 	gemstates: boolean[] = [];
 	ttstates: number[] = [];
 	powerupstates: number[] = [];
 	explosivestates: number[] = [];
+	randompupstates: number[] = [];
 
 	trapdoordirs: number[] = [];
 	trapdoorcontacttime: number[] = [];
 	trapdoorcompletion: number[] = [];
+	teleportstates: number[] = [];
 }
 
 export class Rewind {
@@ -30,13 +35,14 @@ export class Rewind {
 
 	getPowerupTimeStates() {
 		let m = this.rewindManager.level.marble;
-		return [m.superBounceEnableTime,m.shockAbsorberEnableTime,m.helicopterEnableTime];
+		return [m.superBounceEnableTime,m.shockAbsorberEnableTime,m.helicopterEnableTime,m.megaMarbleEnableTime];
 	}
 
 	setPowerupTimeStates(state: number[]) {
 		this.rewindManager.level.marble.superBounceEnableTime = state[0];
 		this.rewindManager.level.marble.shockAbsorberEnableTime = state[1];
 		this.rewindManager.level.marble.helicopterEnableTime = state[2];
+		this.rewindManager.level.marble.megaMarbleEnableTime = state[3];
 	}
 
 	// Its really amazing how small these functions are as compared to how large they were in Rewind.cpp
@@ -56,14 +62,19 @@ export class Rewind {
 				{
 					missionstate.ttstates.push((obj as TimeTravel).lastPickUpTime);
 				}
+				else if (obj instanceof RandomPowerUp) {
+					missionstate.powerupstates.push((obj as PowerUp).lastPickUpTime);
+					missionstate.randompupstates.push((obj as RandomPowerUp).cooldownDuration);
+					missionstate.randompupstates.push((obj as RandomPowerUp).pickedUpCount);
+				}
 				else
 				{
 					missionstate.powerupstates.push((obj as PowerUp).lastPickUpTime);
 				}
 			}
-			if (obj instanceof LandMine)
+			if (obj instanceof LandMine || obj instanceof Nuke)
 			{
-				missionstate.explosivestates.push((obj as LandMine).disappearTime);
+				missionstate.explosivestates.push((obj as LandMine | Nuke).disappearTime);
 			}
 			if (obj instanceof TrapDoor)
 			{
@@ -72,6 +83,13 @@ export class Rewind {
 				missionstate.trapdoorcontacttime.push(trapdoor.lastContactTime);
 				missionstate.trapdoorcompletion.push(trapdoor.lastCompletion);
 				missionstate.trapdoordirs.push(trapdoor.lastDirection);
+			}
+		}
+		for (let i = 0; i < this.rewindManager.level.triggers.length; i++) {
+			let obj = this.rewindManager.level.triggers[i];
+			if (obj instanceof TeleportTrigger) {
+				missionstate.teleportstates.push(obj.entryTime);
+				missionstate.teleportstates.push(obj.exitTime);
 			}
 		}
 		return missionstate;
@@ -97,18 +115,32 @@ export class Rewind {
 					missionstate.ttstates.splice(0,1);
 					(obj as TimeTravel).lastPickUpTime = state;
 				}
-				else
+				else if (obj instanceof RandomPowerUp)
+				{
+					let state = missionstate.powerupstates[0];
+					missionstate.powerupstates.splice(0,1);
+					(obj as PowerUp).lastPickUpTime = state;
+
+					state = missionstate.randompupstates[0];
+					missionstate.randompupstates.splice(0, 1);
+					(obj as RandomPowerUp).cooldownDuration = state;
+
+					state = missionstate.randompupstates[0];
+					missionstate.randompupstates.splice(0, 1);
+					(obj as RandomPowerUp).pickedUpCount = state;
+
+				} else
 				{
 					let state = missionstate.powerupstates[0];
 					missionstate.powerupstates.splice(0,1);
 					(obj as PowerUp).lastPickUpTime = state;
 				}
 			}
-			if (obj instanceof LandMine)
+			if (obj instanceof LandMine || obj instanceof Nuke)
 			{
 				let state = missionstate.explosivestates[0];
 				missionstate.explosivestates.splice(0,1);
-				(obj as LandMine).disappearTime = state;
+				(obj as LandMine | Nuke).disappearTime = state;
 			}
 			if (obj instanceof TrapDoor)
 			{
@@ -125,6 +157,16 @@ export class Rewind {
 				trapdoor.lastContactTime = contacttime;
 				trapdoor.lastCompletion = completion;
 				trapdoor.lastDirection = dir;
+			}
+		}
+		for (let i = 0; i < this.rewindManager.level.triggers.length; i++) {
+			let obj = this.rewindManager.level.triggers[i];
+			if (obj instanceof TeleportTrigger) {
+				let entryTime = missionstate.teleportstates[0];
+				let exitTime = missionstate.teleportstates[1];
+				missionstate.teleportstates.splice(0, 2);
+				obj.entryTime = entryTime;
+				obj.exitTime = exitTime;
 			}
 		}
 	}
@@ -201,6 +243,18 @@ export class Rewind {
 		f.mpstates = this.getMPStates();
 		f.physicsTime = level.timeState.physicsTickCompletion;
 		f.lastContactNormal = level.marble.lastContactNormal.clone();
+		f.blast = level.blastAmount;
+		f.currentCheckpoint = level.currentCheckpoint;
+		f.currentCheckpointTrigger = level.currentCheckpointTrigger;
+		f.checkpointCollectedGems = new Set<Gem>(level.checkpointCollectedGems);
+		f.checkpointHeldPowerUp = level.checkpointHeldPowerUp;
+		f.checkpointUp = level.checkpointUp?.clone();
+		f.checkpointBlast = level.checkpointBlast;
+		f.respawnTimes = level.respawnTimes;
+		f.randompupTimes = missionstate.randompupstates;
+		f.teleportDisableTime = level.marble.teleportDisableTime;
+		f.teleportEnableTime = level.marble.teleportEnableTime;
+		f.teleportTimes = missionstate.teleportstates;
 
 		return f;
 	}
@@ -272,12 +326,22 @@ export class Rewind {
 		level.timeState.gameplayClock = framedata.ms;
 		level.timeState.timeSinceLoad = framedata.timeSinceLoad;
 		level.timeState.physicsTickCompletion = framedata.physicsTime;
+		level.blastAmount = framedata.blast;
+		level.currentCheckpoint = framedata.currentCheckpoint;
+		level.currentCheckpointTrigger = framedata.currentCheckpointTrigger;
+		level.checkpointCollectedGems = framedata.checkpointCollectedGems;
+		level.checkpointHeldPowerUp = framedata.checkpointHeldPowerUp;
+		level.checkpointUp = framedata.checkpointUp?.clone();
+		level.checkpointBlast = framedata.checkpointBlast;
+		level.respawnTimes = framedata.respawnTimes;
 
 		marble.body.position.copy(framedata.position);
 		marble.body.orientation.copy(framedata.rotation);
 		marble.body.linearVelocity.copy(framedata.velocity);
 		marble.body.angularVelocity.copy(framedata.spin);
 		marble.lastContactNormal.copy(framedata.lastContactNormal);
+		marble.teleportDisableTime = framedata.teleportDisableTime;
+		marble.teleportEnableTime = framedata.teleportEnableTime;
 
 		let state = new MissionState();
 		state.explosivestates = framedata.lmstates;
@@ -287,6 +351,8 @@ export class Rewind {
 		state.trapdoordirs = framedata.trapdoordirs;
 		state.trapdoorcompletion = framedata.trapdoorcompletion;
 		state.trapdoorcontacttime = framedata.trapdoorcontacttime;
+		state.randompupstates = framedata.randompupTimes;
+		state.teleportstates = framedata.teleportTimes;
 
 		this.setPowerupTimeStates(framedata.activepowstates);
 		if (!Util.isSameVector(level.currentUp,framedata.gravityDir))

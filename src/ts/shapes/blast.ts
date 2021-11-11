@@ -8,7 +8,8 @@ export class Blast extends PowerUp {
 	pickUpName = "Blast PowerUp";
 
 	pickUp() {
-		AudioManager.play(this.sounds[0]);
+		if (!this.level.rewinding)
+			AudioManager.play(this.sounds[0]);
 		return true;
 	}
 

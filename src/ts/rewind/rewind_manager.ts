@@ -66,20 +66,31 @@ export class RewindManager
 		let f = new Frame();
 		f.deltaMs = delta;
 
+		let direction = one.timeSinceLoad > two.timeSinceLoad ? -1 : 1;
+
 		if (one.timebonus > 0 && two.timebonus > 0)
 		{
 			f.ms = Math.min(one.ms,two.ms); //Stop time while rewinding
 		}
-		else
-		{
-			f.ms = Util.lerp(one.ms, two.ms, ratio);
+	    else
+	    {
+	    	f.ms = Util.lerp(one.ms, two.ms, ratio);
 		}
 
-		// Interpolate the marble's physical quantities
-		f.position = one.position.lerp(two.position,ratio);
-		f.rotation = one.rotation.clone().slerp(two.rotation,ratio);
-		f.velocity = one.velocity.lerp(two.velocity,ratio);
-		f.spin = one.spin.lerp(two.spin,ratio);
+		let isTeleporting = one.respawnTimes != two.respawnTimes;
+        
+		if (isTeleporting) {
+			f.position = (ratio > 0.5) ? two.position : one.position;
+			f.velocity = (ratio > 0.5) ? two.velocity : one.velocity;
+			f.rotation = (ratio > 0.5) ? two.rotation : one.rotation;
+			f.spin = (ratio > 0.5) ? two.spin : one.spin;
+		} else {
+			// Interpolate the marble's physical quantities
+			f.position = one.position.lerp(two.position,ratio);
+			f.rotation = one.rotation.clone().slerp(two.rotation,ratio);
+			f.velocity = one.velocity.lerp(two.velocity,ratio);
+			f.spin = one.spin.lerp(two.spin,ratio);
+		}
 
 		// Bruh how can we interpolate this
 		f.powerup = two.powerup;
@@ -117,6 +128,31 @@ export class RewindManager
 		f.elapsedTime = Util.lerp(one.elapsedTime,two.elapsedTime,ratio);
 		f.physicsTime = Util.lerp(one.physicsTime,two.physicsTime,ratio);
 		f.lastContactNormal = two.lastContactNormal;
+
+		let didPickupUBlast = one.blast == 1.03 || two.blast == 1.03;
+
+		let expectedBlastDelta = delta / 25000;
+		if (Math.abs(Math.abs(expectedBlastDelta) - Math.abs(one.blast - two.blast)) > 0.0001 || didPickupUBlast) {
+			f.blast = (ratio > 0.5) ? two.blast : one.blast;
+		} else {
+			let expectedBlast = Math.min(one.blast, two.blast) + expectedBlastDelta * direction; 
+			f.blast = Util.clamp(expectedBlast, 0, 1);
+		}
+
+		f.currentCheckpoint = (ratio > 0.5) ? two.currentCheckpoint : one.currentCheckpoint;
+		f.currentCheckpointTrigger = (ratio > 0.5) ? two.currentCheckpointTrigger : one.currentCheckpointTrigger;
+		f.checkpointCollectedGems = (ratio > 0.5) ? two.checkpointCollectedGems : one.checkpointCollectedGems;
+		f.checkpointHeldPowerUp = (ratio > 0.5) ? two.checkpointHeldPowerUp : one.checkpointHeldPowerUp;
+		f.checkpointUp = (ratio > 0.5) ? two.checkpointUp : one.checkpointUp;
+		f.checkpointBlast = (ratio > 0.5) ? two.checkpointBlast : one.checkpointBlast;
+		f.respawnTimes = (ratio > 0.5) ? two.respawnTimes : one.respawnTimes;
+
+		f.randompupTimes = (ratio > 0.5) ? [...two.randompupTimes] : [...one.randompupTimes];
+
+		f.teleportEnableTime = (ratio > 0.5) ? two.teleportEnableTime : one.teleportEnableTime;
+		f.teleportDisableTime = (ratio > 0.5) ? two.teleportDisableTime : one.teleportDisableTime;
+
+		f.teleportTimes = (ratio > 0.5) ? [...two.teleportTimes] : [...one.teleportTimes];
 
 		// Surprisingly this was much shorter than the code in RewindManager.cpp
 		return f;

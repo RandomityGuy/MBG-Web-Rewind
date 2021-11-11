@@ -1,6 +1,7 @@
 import { AudioManager } from "../audio";
 import { state } from "../state";
 import { StorageManager } from "../storage";
+import { Util } from "../util";
 import { PowerUp } from "./power_up";
 
 /** Easter eggs are hidden collectibles that the player can search for. */
@@ -19,7 +20,14 @@ export class EasterEgg extends PowerUp {
 			state.menu.levelSelect.displayMission(); // To refresh the icon
 		}
 
-		AudioManager.play(this.sounds[Number(alreadyFound)]); // Holy shit this cast is nasty
+		if (alreadyFound && this.level.rewinding) {
+			Util.removeFromArray(StorageManager.data.collectedEggs, this.level.mission.path);
+			StorageManager.store();
+			state.menu.levelSelect.displayMission(); // To refresh the icon
+		}
+
+		if (!this.level.rewinding)
+			AudioManager.play(this.sounds[Number(alreadyFound)]); // Holy shit this cast is nasty
 		this.customPickUpAlert = alreadyFound? "You already found this Easter Egg." : "You found an Easter Egg!";
 
 		return true;

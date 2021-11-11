@@ -99,6 +99,7 @@ export class TeleportTrigger extends Trigger {
 		AudioManager.play('spawn.wav');
 		this.teleportingSound?.stop();
 		this.teleportingSound = null;
+		this.level.respawnTimes++;
 	}
 
 	reset() {

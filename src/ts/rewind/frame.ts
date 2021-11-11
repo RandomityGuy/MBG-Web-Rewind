@@ -2,6 +2,9 @@ import { Util } from "../util";
 import { PowerUp } from "../shapes/power_up";
 import { Vector3 } from "../math/vector3";
 import { Quaternion } from "../math/quaternion";
+import { Shape } from "../shape";
+import { CheckpointTrigger } from "../triggers/checkpoint_trigger";
+import { Gem } from "../shapes/gem";
 
 export interface MPState // So basically interface is struct. good to know ig
 {
@@ -37,6 +40,29 @@ export class Frame
 	elapsedTime: number; // same as timeSinceLoad
 	physicsTime: number;
 	lastContactNormal: Vector3;
+
+	// MBU
+	blast: number
+
+	// Checkpoint
+	/** Stores the shape that is the destination of the current checkpoint. */
+	currentCheckpoint: Shape = null;
+	/** If the checkpoint was triggered by a trigger, this field stores that trigger. */
+	currentCheckpointTrigger: CheckpointTrigger = null;
+	checkpointCollectedGems = new Set<Gem>();
+	checkpointHeldPowerUp: PowerUp = null;
+	/** Up vector at the point of checkpointing */
+	checkpointUp: OIMO.Vec3 = null;
+	checkpointBlast: number = null;
+	respawnTimes: number = 0;
+
+	randompupTimes: number[];
+
+	teleportEnableTime: number;
+	teleportDisableTime: number;
+
+	teleportTimes: number[];
+
 
 	clone() {
 		let retf = new Frame();
