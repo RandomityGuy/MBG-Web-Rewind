@@ -270,6 +270,7 @@ export const actionButtonContainer = document.querySelector('#action-buttons') a
 export const jumpButton = document.querySelector('#jump-button') as HTMLImageElement;
 export const useButton = document.querySelector('#use-button') as HTMLImageElement;
 export const blastButton = document.querySelector('#blast-button') as HTMLImageElement;
+export const rewindButton = document.querySelector('#rewind-button') as HTMLImageElement;
 export const pauseButton = document.querySelector('#pause-button') as HTMLImageElement;
 export const restartButton = document.querySelector('#restart-button') as HTMLImageElement;
 export const freeLookButton = document.querySelector('#free-look-button') as HTMLImageElement;
@@ -352,6 +353,7 @@ const endCameraMovementFromButton = (touch: Touch) => {
 setupTouchButton(jumpButton, 'jump', startCameraMovementFromButton, endCameraMovementFromButton);
 setupTouchButton(useButton, 'use', startCameraMovementFromButton, endCameraMovementFromButton, getUseEnabledOpacityAndEnabled);
 setupTouchButton(blastButton, 'blast', startCameraMovementFromButton, endCameraMovementFromButton, getBlastEnabledOpacityAndEnabled);
+setupTouchButton(rewindButton, 'rewind', startCameraMovementFromButton, endCameraMovementFromButton);
 setupTouchButton(pauseButton, 'pause');
 setupTouchButton(restartButton, 'restart');
 setupTouchButton(freeLookButton, 'freeLook');
@@ -366,10 +368,10 @@ export const maybeShowTouchControls = () => {
 
 export const setTouchControlMode = (mode: 'normal' | 'replay') => {
 	if (mode === 'normal') {
-		[movementJoystick, jumpButton, useButton, blastButton, freeLookButton].forEach(x => x.style.display = '');
+		[movementJoystick, jumpButton, useButton, blastButton, freeLookButton, rewindButton].forEach(x => x.style.display = '');
 	} else if (mode === 'replay') {
 		// Hide everything but pause and replay buttons
-		[movementJoystick, jumpButton, useButton, blastButton, freeLookButton].forEach(x => x.style.display = 'none');
+		[movementJoystick, jumpButton, useButton, blastButton, freeLookButton, rewindButton].forEach(x => x.style.display = 'none');
 	}
 };
 

@@ -141,6 +141,11 @@ export class MbpOptionsScreen extends OptionsScreen {
 
 		/* Touch controls */
 
+
+		this.addHeading(this.generalContainer, "Rewind");
+		this.addSlider(this.generalContainer, "rewindTimescale", "Timescale", 0.1, 1, undefined, undefined, 0.09, (x) => (Math.ceil(x * 10) / 10).toString(), true);
+		this.addDropdown(this.generalContainer, "rewindMatchFPS", "Match FPS", ["Disabled", "Enabled"], true);
+
 		this.addHeading(this.generalContainer, 'Touch Controls');
 
 		this.addDropdown(this.generalContainer, 'joystickPosition', 'Joystick Position', ['Fixed', 'Dynamic'], undefined, undefined, true);

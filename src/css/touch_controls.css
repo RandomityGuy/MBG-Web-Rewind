@@ -81,6 +81,12 @@
 	right: 0px;
 }
 
+#rewind-button {
+    position: absolute;
+    bottom: 135px;
+    right: 135px;
+}
+
 #pause-button {
 	position: absolute;
 	top: 15px;

@@ -417,6 +417,7 @@ export class MbgOptionsScreen extends OptionsScreen {
 		if (!!(StorageManager.data.settings.invertMouse & 0b10) !== this.invertY.hasAttribute('data-locked')) this.invertY.click();
 		if (StorageManager.data.settings.alwaysFreeLook !== this.alwaysFreeLook.hasAttribute('data-locked')) this.alwaysFreeLook.click();
 		if ((StorageManager.data.settings.marbleReflectivity === 2) !== this.reflectiveMarbleCheckbox.hasAttribute('data-locked')) this.reflectiveMarbleCheckbox.click();
+		if (StorageManager.data.settings.rewindMatchFPS !== this.matchFPSCheckbox.hasAttribute('data-locked')) this.matchFPSCheckbox.click();
 
 		this.setResetMarbleTextureState(!((await StorageManager.databaseCount('keyvalue', 'marbleTexture')) === 0));
 	}
