@@ -50,6 +50,13 @@ def main():
     resp.headers["Cache-Control"] = "no-store";
     return resp;
 
+@app.route('/manifest.json')
+def manifest():
+    resp = send_file(os.path.join(main_path,"manifest.json"));
+    resp.headers["Cache-Control"] = "public, max-age=14400";
+    resp.headers["Content-Type"] = "application/json";
+    return resp;
+
 @app.route('/assets/<path:varargs>')
 def assets(varargs):
     content_type = get_content_type(varargs);
