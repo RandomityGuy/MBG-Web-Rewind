@@ -5,7 +5,7 @@ import { BestTimes, StorageManager } from "../storage";
 import { Mission } from "../mission";
 import { Replay } from "../replay";
 import { previousButtonState } from "../input";
-import { Leaderboard } from "../leaderboard";
+import { Leaderboards } from "../leaderboards";
 import { Menu } from "./menu";
 import { MissionLibrary } from "../mission_library";
 import { state } from "../state";
@@ -43,6 +43,8 @@ export abstract class LevelSelect {
 	currentMissionArray: Mission[];
 	currentMissionIndex: number;
 	get currentMission() { return this.currentMissionArray?.[this.currentMissionIndex]; }
+
+	downloadingReplay: boolean = false;
 
 	constructor(menu: Menu) {
 		this.menu = menu;
@@ -171,7 +173,7 @@ export abstract class LevelSelect {
 
 		this.setImages(false, doImageTimeout);
 		this.updateNextPrevButtons();
-		Leaderboard.loadLocal();
+		// Leaderboard.loadLocal();
 	}
 
 	/** ...for the current level. */
@@ -274,7 +276,7 @@ export abstract class LevelSelect {
 		let toLoad = new Set<Mission>();
 
 		// Preload the neighboring-mission images for faster flicking between missions without having to wait for images to load.
-		for (let i = 0; i <= 10; i++) {
+		for (let i = 0; i <= 1; i++) {
 			let index = this.getCycleMissionIndex(Math.ceil(i / 2) * ((i % 2)? 1 : -1)); // Go in an outward spiral pattern, but only visit the missions that match the current search
 			let mission = this.currentMissionArray[index];
 			if (!mission) continue;
@@ -369,8 +371,11 @@ export abstract class LevelSelect {
 			this.leaderboardScores.style.paddingBottom = '0px';
 			for (let element of this.leaderboardScores.children) (element as HTMLDivElement).style.display = 'none';
 		} else {
-			this.leaderboardLoading.style.display = Leaderboard.isLoading(this.currentMission.path)? 'block' : 'none';
-			this.updateOnlineLeaderboard();
+			this.leaderboardLoading.style.display = 'block'; // Leaderboard.isLoading(this.currentMission.path)? 'block' : 'none';
+			this.updateOnlineLeaderboard().then(() => 
+			{
+				this.leaderboardLoading.style.display = 'none';
+			});
 			setTimeout(() => this.updateOnlineLeaderboard()); // Sometimes, scrollTop isn't set properly, so do it again after a very short time
 		}
 	}
@@ -437,12 +442,40 @@ export abstract class LevelSelect {
 		}
 	}
 
+	/** Creates a replay button for use in score elements. */
+	createLBReplayButton() {
+		let icon = document.createElement('img');
+		icon.src = "./assets/img/round_videocam_black_18dp.png";
+		icon.style.display = 'block';
+
+		icon.addEventListener('click', async (e) => {
+			if (e.button !== 0) return;
+			let mission = this.currentMission;
+			if (!mission) return;
+			if (this.downloadingReplay) return;						
+			this.downloadingReplay = true;
+			let replayData = await Leaderboards.get_top_replay(mission?.path);
+			if (!replayData) return;
+			this.downloadingReplay = false;
+			this.playCurrentMission(replayData);
+		});
+
+		icon.addEventListener('mouseenter', () => {
+			AudioManager.play('buttonover.wav');
+		});
+		icon.addEventListener('mousedown', (e) => {
+			if (e.button === 0) AudioManager.play('buttonpress.wav');
+		});
+
+		return icon;
+	}
+
 	/** Updates the elements in the online leaderboard. Updates only the visible elements and adds padding to increase performance. */
-	updateOnlineLeaderboard() {
+	async updateOnlineLeaderboard() {
 		let mission = this.currentMission;
 		if (!mission) return;
 
-		let onlineScores = Leaderboard.scores.get(mission.path) ?? [];
+		let onlineScores = await Leaderboards.get_scores(mission.path);
 		let elements = this.leaderboardScores.children;
 		let index = 0;
 
@@ -473,6 +506,21 @@ export abstract class LevelSelect {
 				let score = onlineScores[index];
 				element.style.display = 'block';
 				this.updateScoreElement(element, score as any, index + 1);
+				while (StorageManager.data.modification == "platinum" && element.children.length > 2)
+					element.removeChild(element.children[2]);
+				
+				while (StorageManager.data.modification == "gold" && element.children.length > 3)
+					element.removeChild(element.children[3]);
+
+				if (i == 0 && await Leaderboards.has_top_replay(mission.path)) {
+					while (StorageManager.data.modification == "platinum" && element.children.length > 2)
+						element.removeChild(element.children[2]);
+					
+					while (StorageManager.data.modification == "gold" && element.children.length > 3)
+						element.removeChild(element.children[3]);
+					let button = this.createLBReplayButton();
+					element.appendChild(button);
+				}
 			} else {
 				// Hide the element otherwise
 				element.style.display = 'none';

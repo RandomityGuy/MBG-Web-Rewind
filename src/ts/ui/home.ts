@@ -1,4 +1,4 @@
-import { Leaderboard } from "../leaderboard";
+import { Leaderboards } from "../leaderboards";
 import { ResourceManager } from "../resources";
 import { state } from "../state";
 import { StorageManager } from "../storage";
@@ -33,7 +33,7 @@ export abstract class HomeScreen {
 			// Show the level select
 			this.hide();
 			menu.levelSelect.show();
-			Leaderboard.syncLeaderboard();
+			// Leaderboard.syncLeaderboard();
 		});
 		menu.setupButton(this.helpButton, this.helpSrc, () => {
 			// Show the help screen

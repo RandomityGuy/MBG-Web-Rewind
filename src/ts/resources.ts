@@ -111,7 +111,8 @@ export abstract class ResourceManager {
 		if (cached) return Promise.resolve(cached);
 		if (this.loadResourcePromises.get(path)) return this.loadResourcePromises.get(path);
 
-		let promise = new Promise<Blob>((resolve, reject) => {
+		let tries = 0;
+		let promise = new Promise<Blob>((resolve) => {
 			const attempt = async () => {
 				try {
 					let response = await fetch(path);
@@ -132,7 +133,9 @@ export abstract class ResourceManager {
 					resolve(blob);
 				} catch (e) {
 					// Try again in a second
-					setTimeout(attempt, 1000);
+					tries++;
+					if (tries < 5)
+						setTimeout(attempt, 1000);
 				}
 			};
 			attempt();
@@ -149,6 +152,7 @@ export abstract class ResourceManager {
 
 		let promise = new Promise<HTMLImageElement>((resolve) => {
 			let image = new Image();
+			image.crossOrigin = "Anonymous";
 			image.src = path;
 
 			image.onload = () => {

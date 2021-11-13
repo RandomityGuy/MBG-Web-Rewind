@@ -1,6 +1,6 @@
 import { AudioManager } from "../audio";
 import { isPressedByGamepad, getPressedFlag, resetPressedFlag } from "../input";
-import { Leaderboard } from "../leaderboard";
+import { Leaderboards } from "../leaderboards";
 import { GO_TIME } from "../level";
 import { Replay } from "../replay";
 import { state } from "../state";
@@ -72,10 +72,18 @@ export abstract class FinishScreen {
 					level.replay.canStore = false;
 					let serialized = await level.replay.serialize();
 					await StorageManager.databasePut('replays', serialized, inserted.score[2]);
+
+					if (!level.mission.path.includes('custom/')) { // Sorry but, only non customs get replays for now
+						if (serialized !== null) {
+							Leaderboards.upload_top_replay(level.mission.path, level.finishTime.gameplayClock, serialized);
+						} else {
+							console.error(`Couldnt upload replay for ${level.mission.path}`);
+						}
+					}
 				}
 
 				// Submit the score to the leaderboard but only if it's the local top time and qualified
-				if (inserted.index === 0 && level.finishTime.gameplayClock <= level.mission.qualifyTime) Leaderboard.submitBestTime(level.mission.path, inserted.score);
+				if (inserted.index === 0 && level.finishTime.gameplayClock <= level.mission.qualifyTime) Leaderboards.post_score(level.mission.path,StorageManager.data.lastUsedName, level.finishTime.gameplayClock);
 			}
 		}, undefined, undefined, state.modification === 'gold');
 

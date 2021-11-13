@@ -10,7 +10,9 @@ Current release is hosted [here](http://mbgwrewind.pythonanywhere.com/)
 ## Usage
 Start a level, press and hold 'Left Shift' to rewind
 
-## Building and developing
-If you wish to build the game yourself, simply clone the repository, then run `npm install --legacy-peer-deps` and `npm run compile`, which will compile the TypeScript code using [rollup](https://rollupjs.org/guide/en/). Then run `npm start` to start up the server (runs on :8080 by default). If you want to configure the port and other server options, modify `server/data/config.json`. For fast development run `npm run watch-fast` (or `npm run watch` for a slower, but typechecked version). If you wish to bundle the project, run `npm run bundle`, which uses [Sarcina](https://github.com/Vanilagy/Sarcina) and writes to `dist/`.
+## Building
+To compile, run `npm install`, then `npm run compile`. For fast building after initial build, do `npm run watch-fast`.
 
-**Note:** This project has a dependency that requires `node-gyp`. Install `node-gyp` _before_ running `npm install` on this project with `npm install -g node-gyp`, and if you're on Windows, make sure to run `npm install --global --production windows-build-tools` right afterwards in an _elevated command prompt_ (one with admin rights) to handle the annoying installation stuff
+## Running the server
+Python 3 is required to run the server.  
+Install the requirements using `pip install -r requirements.txt`, then run the flask server by running run-flask.bat

@@ -3,7 +3,7 @@ import { ResourceManager } from "./resources";
 import { AudioManager } from "./audio";
 import { StorageManager } from './storage';
 import { Util } from './util';
-import { Leaderboard } from './leaderboard';
+import { Leaderboards } from './leaderboards';
 import { MissionLibrary } from './mission_library';
 import { state } from './state';
 import { setMenu } from './ui/menu_setter';
@@ -50,6 +50,13 @@ const init = async () => {
 			clearInterval(intervalId);
 		});
 	}
+
+	if (Util.isTouchDevice) {
+		document.querySelectorAll('.mobile-support-reminder').forEach(x => (x as HTMLElement).style.display = 'none');
+	}
+
+	loadingDetail.textContent = 'Loading leaderboard...';
+	if (Util.isWeeb) document.title = 'Marble Blast Weeb'; // <- humor
 
 	let started = false;
 	const start = async () => {
