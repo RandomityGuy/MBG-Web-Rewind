@@ -1225,7 +1225,7 @@ export class Level extends Scheduler {
 			else this.rewind.rewindManager.pushFrame(this.rewind.getCurrentFrame(this.deltaMsAccumulator));
 		}
 
-		if (this.rewinding && !playReplay && this.finishTime === null) {
+		if (this.rewinding && !playReplay && !state.menu.finishScreen.showing) {
 			this.rewind.rewindFrame(null);
 			this.updateUI();
 		}
@@ -1617,7 +1617,7 @@ export class Level extends Scheduler {
 				resetPressedFlag('use');
 				resetPressedFlag('jump');
 				resetPressedFlag('restart');
-			});
+			}, 'finishSchedule');
 		}
 	}
 

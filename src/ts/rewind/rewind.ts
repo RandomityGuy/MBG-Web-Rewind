@@ -335,6 +335,11 @@ export class Rewind {
 		level.checkpointBlast = framedata.checkpointBlast;
 		level.respawnTimes = framedata.respawnTimes;
 
+        if (level.finishTime !== null) {
+            level.finishTime = null;
+            level.clearScheduleId('finishSchedule');
+        }
+
 		marble.body.position.copy(framedata.position);
 		marble.body.orientation.copy(framedata.rotation);
 		marble.body.linearVelocity.copy(framedata.velocity);
