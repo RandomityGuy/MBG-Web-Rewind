@@ -141,7 +141,7 @@ def get_directory_structure_mbp():
 @app.route('/api/custom/<path>')
 def get_custom_mission(path):
     if (USE_PROXY_ASSETS):
-        return redirect(f"https://marbleblast.vani.ga/assets/{path}");
+        return redirect(f"https://marbleblast.vani.ga/api/custom/{path}");
     return 404;
 
 @app.route('/api/version_history')

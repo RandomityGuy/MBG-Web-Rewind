@@ -44,7 +44,7 @@ export abstract class LevelSelect {
 	currentMissionIndex: number;
 	get currentMission() { return this.currentMissionArray?.[this.currentMissionIndex]; }
 
-	downloadingReplay: boolean = false;
+	downloadingReplay = false;
 
 	constructor(menu: Menu) {
 		this.menu = menu;
@@ -70,12 +70,12 @@ export abstract class LevelSelect {
 		}
 
 		// Create the elements for the online leaderboard (will be reused)
-		for (let i = 0; i < 18; i++) {
+		for (let i = 0; i < 100; i++) {
 			let element = this.createScoreElement(false);
 			this.leaderboardScores.appendChild(element);
 		}
 
-		this.scrollWindow.addEventListener('scroll', () => this.updateOnlineLeaderboard());
+		// this.scrollWindow.addEventListener('scroll', async () => await this.updateOnlineLeaderboard());
 
 		window.addEventListener('keydown', (e) => {
 			if (this.div.classList.contains('hidden')) return;
@@ -372,11 +372,15 @@ export abstract class LevelSelect {
 			for (let element of this.leaderboardScores.children) (element as HTMLDivElement).style.display = 'none';
 		} else {
 			this.leaderboardLoading.style.display = 'block'; // Leaderboard.isLoading(this.currentMission.path)? 'block' : 'none';
-			this.updateOnlineLeaderboard().then(() => 
+			for (let i = 0; i < this.leaderboardScores.children.length; i++) {
+				let element = this.leaderboardScores.children[i] as HTMLDivElement;
+				element.style.display = 'none';
+			}
+			this.updateOnlineLeaderboard().then(() =>
 			{
 				this.leaderboardLoading.style.display = 'none';
 			});
-			setTimeout(() => this.updateOnlineLeaderboard()); // Sometimes, scrollTop isn't set properly, so do it again after a very short time
+			// setTimeout(async () => await this.updateOnlineLeaderboard()); // Sometimes, scrollTop isn't set properly, so do it again after a very short time
 		}
 	}
 
@@ -452,7 +456,7 @@ export abstract class LevelSelect {
 			if (e.button !== 0) return;
 			let mission = this.currentMission;
 			if (!mission) return;
-			if (this.downloadingReplay) return;						
+			if (this.downloadingReplay) return;
 			this.downloadingReplay = true;
 			let replayData = await Leaderboards.get_top_replay(mission?.path);
 			if (!replayData) return;
@@ -479,24 +483,24 @@ export abstract class LevelSelect {
 		let elements = this.leaderboardScores.children;
 		let index = 0;
 
-		// Reset styling
-		this.leaderboardScores.style.paddingTop = '0px';
-		this.leaderboardScores.style.paddingBottom = '0px';
-		(elements[index] as HTMLDivElement).style.display = 'block';
+		// // Reset styling
+		// this.leaderboardScores.style.paddingTop = '0px';
+		// this.leaderboardScores.style.paddingBottom = '0px';
+		// (elements[index] as HTMLDivElement).style.display = 'block';
 
-		// Get the y of the top element
-		let currentY = (elements[0] as HTMLDivElement).offsetTop - this.scrollWindow.scrollTop;
+		// // Get the y of the top element
+		// let currentY = (elements[0] as HTMLDivElement).offsetTop - this.scrollWindow.scrollTop;
 
-		this.leaderboardScores.style.height = onlineScores.length * this.scoreElementHeight + 'px';
+		// this.leaderboardScores.style.height = onlineScores.length * this.scoreElementHeight + 'px';
 
-		// As long as the top element is out of view, move to the next one. By doing this, we find the first element that's in view (from the top)
-		while (currentY < -this.scoreElementHeight && index < onlineScores.length) {
-			index++;
-			currentY += this.scoreElementHeight;
-		}
+		// // As long as the top element is out of view, move to the next one. By doing this, we find the first element that's in view (from the top)
+		// while (currentY < -this.scoreElementHeight && index < onlineScores.length) {
+		// 	index++;
+		// 	currentY += this.scoreElementHeight;
+		// }
 
-		// Add padding to the top according to how many elements we've already passed at the top
-		this.leaderboardScores.style.paddingTop = index * this.scoreElementHeight + 'px';
+		// // Add padding to the top according to how many elements we've already passed at the top
+		// this.leaderboardScores.style.paddingTop = index * this.scoreElementHeight + 'px';
 
 		for (let i = 0; i < elements.length; i++) {
 			let element = elements[i] as HTMLDivElement;
@@ -508,18 +512,21 @@ export abstract class LevelSelect {
 				this.updateScoreElement(element, score as any, index + 1);
 				while (state.modification == "platinum" && element.children.length > 2)
 					element.removeChild(element.children[2]);
-				
+
 				while (state.modification == "gold" && element.children.length > 3)
 					element.removeChild(element.children[3]);
 
-				if (index == 0 && await Leaderboards.has_top_replay(mission.path)) {
-					while (state.modification == "platinum" && element.children.length > 2)
-						element.removeChild(element.children[2]);
-					
-					while (state.modification == "gold" && element.children.length > 3)
-						element.removeChild(element.children[3]);
-					let button = this.createLBReplayButton();
-					element.appendChild(button);
+				if (index == 0) {
+					let hasTopReplay = await Leaderboards.has_top_replay(mission.path);
+					if (hasTopReplay) {
+						while (state.modification == "platinum" && element.children.length > 2)
+							element.removeChild(element.children[2]);
+
+						while (state.modification == "gold" && element.children.length > 3)
+							element.removeChild(element.children[3]);
+						let button = this.createLBReplayButton();
+						element.appendChild(button);
+					}
 				}
 			} else {
 				// Hide the element otherwise
@@ -529,8 +536,8 @@ export abstract class LevelSelect {
 			index++;
 		}
 
-		// Add padding to the bottom according to how many scores there are still left
-		this.leaderboardScores.style.paddingBottom = Math.max(onlineScores.length - index, 0) * this.scoreElementHeight + 'px';
+		// // Add padding to the bottom according to how many scores there are still left
+		// this.leaderboardScores.style.paddingBottom = Math.max(onlineScores.length - index, 0) * this.scoreElementHeight + 'px';
 	}
 
 	onSearchInputChange() {
