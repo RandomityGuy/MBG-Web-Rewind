@@ -506,17 +506,17 @@ export abstract class LevelSelect {
 				let score = onlineScores[index];
 				element.style.display = 'block';
 				this.updateScoreElement(element, score as any, index + 1);
-				while (StorageManager.data.modification == "platinum" && element.children.length > 2)
+				while (state.modification == "platinum" && element.children.length > 2)
 					element.removeChild(element.children[2]);
 				
-				while (StorageManager.data.modification == "gold" && element.children.length > 3)
+				while (state.modification == "gold" && element.children.length > 3)
 					element.removeChild(element.children[3]);
 
-				if (i == 0 && await Leaderboards.has_top_replay(mission.path)) {
-					while (StorageManager.data.modification == "platinum" && element.children.length > 2)
+				if (index == 0 && await Leaderboards.has_top_replay(mission.path)) {
+					while (state.modification == "platinum" && element.children.length > 2)
 						element.removeChild(element.children[2]);
 					
-					while (StorageManager.data.modification == "gold" && element.children.length > 3)
+					while (state.modification == "gold" && element.children.length > 3)
 						element.removeChild(element.children[3]);
 					let button = this.createLBReplayButton();
 					element.appendChild(button);
