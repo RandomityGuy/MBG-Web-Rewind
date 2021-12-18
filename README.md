@@ -1,6 +1,6 @@
 # Marble Blast Gold - Web Port - Rewind Edition
 This implements rewinding capabilities to the MBG Web Port located [here](https://github.com/Vanilagy/MarbleBlast)  
-Current release is hosted [here](https://mbwrewind.eu.openode.io/) on [opeNode.io](https://www.openode.io/)
+Current release is hosted [here](http://mbgwrewind.pythonanywhere.com/)
 
 ## Currently Implemented Features
 - Rewind support for marble, all collectibles, timer, shape animations, all hazards, gravity, moving platforms, teleports, checkpoint and blast.

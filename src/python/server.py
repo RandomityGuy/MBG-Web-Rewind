@@ -1,4 +1,4 @@
-from flask import Flask, render_template, url_for, Response, jsonify, request ,redirect, send_file;
+from flask import Flask, render_template, url_for, Response, jsonify, request ,redirect, send_file, abort;
 import os;
 import requests;
 from zipfile import ZipFile;
@@ -50,12 +50,26 @@ def main():
     resp.headers["Cache-Control"] = "no-store";
     return resp;
 
+@app.route('/index.html')
+def mainindex():
+    resp = send_file(os.path.join(main_path,"index.html"));
+    resp.headers["Cache-Control"] = "no-store";
+    return resp;
+
 @app.route('/manifest.json')
 def manifest():
     resp = send_file(os.path.join(main_path,"manifest.json"));
     resp.headers["Cache-Control"] = "public, max-age=14400";
     resp.headers["Content-Type"] = "application/json";
     return resp;
+
+@app.route('/sw.js')
+def swjs():
+    resp = send_file(os.path.join(main_path,"sw.js"));
+    resp.headers["Cache-Control"] = "public, max-age=14400";
+    resp.headers["Content-Type"] = "application/javascript";
+    return resp;
+
 
 @app.route('/assets/<path:varargs>')
 def assets(varargs):
@@ -153,7 +167,7 @@ def version_history():
 
 @app.route('/api/activity')
 def register_activity():
-    return 200;
+    return "OK";
 
 @app.route("/api/error", methods = [ "POST" ])
 def log_error():
