@@ -232,7 +232,7 @@ export class Level extends Scheduler {
 	/** Up vector at the point of checkpointing */
 	checkpointUp: Vector3 = null;
 	checkpointBlast: number = null;
-	respawnTimes: number = 0;
+	respawnTimes = 0;
 
 	timeTravelSound: AudioSource;
 	/** The alarm that plays in MBP when the player is about to pass the "par time". */
@@ -242,11 +242,11 @@ export class Level extends Scheduler {
 	originalMusicName: string;
 	replay: Replay;
 
-	// Rewind 
+	// Rewind
 	rewinding = false;
 	rewind: Rewind;
 	lastRewinding = false;
-	
+
 	deltaMs: number; // Why isnt this stored anywhere
 	deltaMsAccumulator: number;
 	oobSchedule: number;
@@ -1239,15 +1239,15 @@ export class Level extends Scheduler {
 			this.rewind.rewindFrame(null);
 			this.updateUI();
 		}
-	
-		
+
+
 		if (this.lastRewinding && !this.rewinding && !playReplay) // We just stopped rewinding, so edit out the replay
 		{
 			this.rewind.rewindManager.spliceReplay(this.timeState.currentAttemptTime);
 		}
-		
+
 		this.lastRewinding = this.rewinding;
-		
+
 		this.updateGameState();
 
 		AudioManager.updatePositionalAudio(this.timeState, this.camera.position, this.yaw);
@@ -1399,14 +1399,14 @@ export class Level extends Scheduler {
 	setPowerUp(powerUp: PowerUp) {
 		if (this.heldPowerUp && powerUp.constructor === this.heldPowerUp.constructor) return false;
 		this.heldPowerUp = powerUp;
-		
+
 		for (let overlayShape of this.overlayShapes) {
 			if (overlayShape.dtsPath.includes("gem")) continue;
-			
+
 			// Show the corresponding icon in the HUD
 			overlayShape.setOpacity(Number(overlayShape.dtsPath === powerUp.dtsPath));
 		}
-		
+
 		return true;
 	}
 

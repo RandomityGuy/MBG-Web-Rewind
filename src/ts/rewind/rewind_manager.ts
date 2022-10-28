@@ -72,13 +72,12 @@ export class RewindManager
 		{
 			f.ms = Math.min(one.ms,two.ms); //Stop time while rewinding
 		}
-	    else
-	    {
-	    	f.ms = Util.lerp(one.ms, two.ms, ratio);
+		else
+		{
+			f.ms = Util.lerp(one.ms, two.ms, ratio);
 		}
 
 		let isTeleporting = one.respawnTimes != two.respawnTimes;
-        
 		if (isTeleporting) {
 			f.position = (ratio > 0.5) ? two.position : one.position;
 			f.velocity = (ratio > 0.5) ? two.velocity : one.velocity;

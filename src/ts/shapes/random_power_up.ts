@@ -48,10 +48,10 @@ export class RandomPowerUp extends PowerUp {
 					if (!arr) arr = [], this.level.replay.randomPowerUpChoices.set(this.id, arr);
 					if (arr.length >= this.pickedUpCount) {
 						arr = arr.slice(0, this.pickedUpCount);
-						arr[this.pickedUpCount - 1] = POSSIBLE_POWERUPS.indexOf(random);
+						arr[this.pickedUpCount - 1] = POSSIBLE_POWERUPS.indexOf(Random);
 						this.level.replay.randomPowerUpChoices.set(this.id, arr);
 					} else
-						arr.push(POSSIBLE_POWERUPS.indexOf(random));
+						arr.push(POSSIBLE_POWERUPS.indexOf(Random));
 				}
 
 				return true;

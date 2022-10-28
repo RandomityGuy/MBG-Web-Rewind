@@ -42,7 +42,7 @@ export class Frame
 	lastContactNormal: Vector3;
 
 	// MBU
-	blast: number
+	blast: number;
 
 	// Checkpoint
 	/** Stores the shape that is the destination of the current checkpoint. */
@@ -52,9 +52,9 @@ export class Frame
 	checkpointCollectedGems = new Set<Gem>();
 	checkpointHeldPowerUp: PowerUp = null;
 	/** Up vector at the point of checkpointing */
-	checkpointUp: OIMO.Vec3 = null;
+	checkpointUp: Vector3 = null;
 	checkpointBlast: number = null;
-	respawnTimes: number = 0;
+	respawnTimes = 0;
 
 	randompupTimes: number[];
 
