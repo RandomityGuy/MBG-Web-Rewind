@@ -251,7 +251,7 @@ export class Level extends Scheduler {
 	oobSchedule: number;
 
 	// Replay controls
-	isReplayPaused: boolean = false;
+	isReplayPaused = false;
 
 	constructor(mission: Mission, offline = false) {
 		super();
@@ -1279,7 +1279,6 @@ export class Level extends Scheduler {
 		}
 	}
 	updateUI() {
-		state.menu.hud.displayGemCount(this.gemCount, this.totalGems);
 		this.updateGameState();
 	}
 

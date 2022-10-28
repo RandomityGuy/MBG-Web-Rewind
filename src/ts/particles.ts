@@ -256,6 +256,7 @@ export class ParticleEmitter {
 	lastPosTime: number;
 	currPos: Vector3;
 	currPosTime: number;
+	creationTime: number; // Rewind needs this to remove artifacts from the future
 	vel = new Vector3();
 	getPos: () => Vector3;
 	spawnSphereSquish: Vector3;
