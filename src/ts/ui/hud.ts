@@ -1,5 +1,5 @@
 import { AudioManager } from "../audio";
-import { actionButtonContainer, blastButton, freeLookButton, JOYSTICK_HANDLE_SIZE_FACTOR, jumpButton, movementJoystick, movementJoystickHandle, pauseButton, restartButton, rewindButton, setUseEnabled, useButton } from "../input";
+import { actionButtonContainer, blastButton, freeLookButton, JOYSTICK_HANDLE_SIZE_FACTOR, jumpButton, movementJoystick, movementJoystickHandle, pauseButton, restartButton, setUseEnabled, useButton } from "../input";
 import { GO_TIME, MAX_TIME, PHYSICS_TICK_RATE, TimeState } from "../level";
 import { Vector2 } from "../math/vector2";
 import { ResourceManager } from "../resources";
@@ -141,11 +141,158 @@ export abstract class Hud {
 		}
 	}
 
-	/** Updates the game clock canvas. */
-	displayTime(seconds: number, specialColor?: 'red' | 'green') {
-		if (!this.supportNumberColors) specialColor = undefined;
+	setSize(width: number, height: number, pixelRatio: number) {
+		let canvasWidth = Math.ceil(width * pixelRatio);
+		let canvasHeight = Math.ceil(height * pixelRatio);
 
-		let string = Util.secondsToTimeString(seconds);
+		this.hudCanvas.setAttribute("width", canvasWidth.toString());
+		this.hudCanvas.setAttribute("height", canvasHeight.toString());
+
+		let scalingRatio = computeUiScalingRatio(width, height);
+		this.width = Math.ceil(width * scalingRatio);
+		this.height = Math.ceil(height * scalingRatio);
+	}
+
+	/** Renders the entire HUD onto a canvas. */
+	renderHud(timeState: TimeState) {
+		const ctx = this.hudCtx;
+		const level = state.level;
+		const { width, height } = this;
+
+		// Scale the context so that it spans the entire, actual width of the canvas
+		let scale = this.hudCanvas.width / this.width;
+		ctx.resetTransform();
+		ctx.scale(scale, scale);
+
+		ctx.clearRect(0, 0, width, height);
+
+		// Draw the clock background
+		if (this.showClockBackground) {
+			let clockBackground = ResourceManager.getImageFromCache('./assets/ui_mbp/game/transparency.png');
+			ctx.drawImage(clockBackground, Math.floor(width/2 - 220/2 + 3), -10, 220, 79);
+		}
+
+		// This might seem a bit strange, but the time we display is actually a few milliseconds in the PAST (unless the user is currently in TT or has finished), for the reason that time was able to go backwards upon finishing or collecting TTs due to CCD time correction. That felt wrong, so we accept this inaccuracy in displaying time for now.
+		let timeToDisplay = timeState.gameplayClock;
+		if (level.finishTime) timeToDisplay = level.finishTime.gameplayClock;
+		if (level.currentTimeTravelBonus === 0 && !level.finishTime) timeToDisplay = Math.max(timeToDisplay - 1000 / PHYSICS_TICK_RATE, 0);
+		level.maxDisplayedTime = Math.max(timeToDisplay, level.maxDisplayedTime);
+		if (level.currentTimeTravelBonus === 0 && !level.finishTime) timeToDisplay = level.maxDisplayedTime;
+
+		timeToDisplay = Math.min(timeToDisplay, MAX_TIME);
+
+		// Draw the clock
+		this.drawNumbers(Util.secondsToTimeString(timeToDisplay / 1000), width/2, 0, true, this.determineClockColor(timeToDisplay));
+
+		// Draw the gem count
+		if (level.totalGems > 0) {
+			let string = Util.leftPadZeroes(level.gemCount.toString(), this.gemCountMinDigits) + '/' + Util.leftPadZeroes(level.totalGems.toString(), this.gemCountMinDigits);
+			this.drawNumbers(string, 30, 0, false);
+		}
+
+		// Draw the power-up border (always there)
+		let powerUpBorder = ResourceManager.getImageFromCache(this.menu.uiAssetPath + "game/powerup.png");
+		ctx.drawImage(powerUpBorder, width - powerUpBorder.width - 5, 5);
+
+		// Draw the center text
+		if (this.centerText !== 'none') {
+			let image = ResourceManager.getImageFromCache(this.menu.uiAssetPath + 'game/' + this.centerText + '.png');
+			ctx.drawImage(image, Math.floor((width - image.width) / 2), Math.floor(height * 0.3));
+		}
+
+		let helpTextTime = this.helpTextTimeState?.timeSinceLoad ?? -Infinity;
+		let alertTextTime = this.alertTextTimeState?.timeSinceLoad ?? -Infinity;
+		let helpTextCompletion = Util.clamp((timeState.timeSinceLoad - helpTextTime - 3000) / 1000, 0, 1) ** 2;
+		let alertTextCompletion = Util.clamp((timeState.timeSinceLoad - alertTextTime - 3000) / 1000, 0, 1) ** 2;
+
+		// Draw the help text
+		if (helpTextCompletion < 1) {
+			let white: RGBAColor = { r: 255, g: 255, b: 255, a: 255 };
+			let black: RGBAColor = { r: 0, g: 0, b: 0, a: 255 };
+			let color = Util.lerpColors(white, black, Util.lerp(0, 0.5, helpTextCompletion));
+
+			ctx.font = '24px DomCasualRegular';
+			ctx.fillStyle = `rgb(${color.r}, ${color.g}, ${color.b})`;
+			ctx.textAlign = 'center';
+			ctx.textBaseline = 'top';
+			ctx.shadowColor = state.modification === 'gold' ? 'black' : '#777777';
+			ctx.shadowOffsetX = 1;
+			ctx.shadowOffsetY = 1;
+			ctx.globalAlpha = 1 - helpTextCompletion;
+
+			let lines = this.breakTextIntoLines(this.helpText, width);
+			for (let i = 0; i < lines.length; i++) {
+				ctx.fillText(lines[i], Math.floor(width / 2), Math.floor(height * 0.45) + 24*1.2*i);
+			}
+
+			ctx.shadowColor = 'transparent';
+			ctx.shadowOffsetX = 0;
+			ctx.shadowOffsetY = 0;
+			ctx.globalAlpha = 1;
+		}
+
+		// Draw the alert text
+		if (alertTextCompletion < 1) {
+			let yellow: RGBAColor = state.modification === 'gold' ? { r: 255, g: 226, b: 64, a: 255 } : { r: 228, g: 211, b: 64, a: 129 };
+			let black: RGBAColor = { r: 0, g: 0, b: 0, a: 255 };
+			let color = Util.lerpColors(yellow, black, Util.lerp(0, 0.5, alertTextCompletion));
+
+			ctx.font = '24px DomCasualRegular';
+			ctx.fillStyle = `rgb(${color.r}, ${color.g}, ${color.b})`;
+			ctx.textAlign = 'center';
+			ctx.textBaseline = 'bottom';
+			ctx.shadowColor = state.modification === 'gold' ? 'black' : 'rgb(119, 102, 34)';
+			ctx.shadowOffsetX = 1;
+			ctx.shadowOffsetY = 1;
+			ctx.globalAlpha = 1 - alertTextCompletion;
+
+			let lines = this.breakTextIntoLines(this.alertText, width);
+			for (let i = 0; i < lines.length; i++) {
+				ctx.fillText(lines[i], Math.floor(width / 2), height - 30 - 24*1.2*(lines.length - i - 1));
+			}
+
+			ctx.shadowColor = 'transparent';
+			ctx.shadowOffsetX = 0;
+			ctx.shadowOffsetY = 0;
+			ctx.globalAlpha = 1;
+		}
+
+		// Draw the blast meter
+		if (level.mission.hasBlast) {
+			let amount = level.blastAmount;
+
+			let offset = new Vector2(7, 34);
+			if (Util.isTouchDevice) offset.set(20, 47); // To make it visible with rounded corners
+
+			let blastMeterFillSrc = `./assets/ui_mbp/game/blastbar_bar${(amount >= 0.2)? 'green' : 'gray'}.png`;
+			let fillImage = ResourceManager.getImageFromCache(blastMeterFillSrc);
+			ctx.drawImage(fillImage, offset.x + 5, height - offset.y + 5, Util.clamp(amount, 0, 1) * 109, 17);
+
+			let bodyImage = ResourceManager.getImageFromCache((amount > 1)? './assets/ui_mbp/game/blastbar_charged.png' : './assets/ui_mbp/game/blastbar.png');
+			ctx.drawImage(bodyImage, offset.x, height - offset.y);
+		}
+	}
+
+	determineClockColor(timeToDisplay: number) {
+		if (state.modification === 'gold') return;
+		const level = state.level;
+
+		if (level.finishTime) return 'green'; // Even if not qualified
+		if (level.timeState.currentAttemptTime < GO_TIME || level.currentTimeTravelBonus > 0) return 'green';
+		if (timeToDisplay >= level.mission.qualifyTime) return 'red';
+
+		if (level.timeState.currentAttemptTime >= GO_TIME && isFinite(level.mission.qualifyTime) && state.modification === 'platinum') {
+			// Create the flashing effect
+			let alarmStart = level.mission.computeAlarmStartTime();
+			let elapsed = timeToDisplay - alarmStart;
+			if (elapsed < 0) return;
+			if (Math.floor(elapsed / 1000) % 2 === 0) return 'red';
+		}
+
+		return; // Default yellow
+	}
+
+	drawNumbers(string: string, x: number, y: number, isClock: boolean, specialColor?: 'red' | 'green') {
 		const defaultWidth = 43;
 		const defaultMarginRight = -19;
 		let currentX = 0;
