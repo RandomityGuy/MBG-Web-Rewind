@@ -27,7 +27,7 @@ const init = async () => {
 	await setMenu(StorageManager.data.modification);
 
 	loadingDetail.textContent = 'Loading leaderboard...';
-	await Leaderboard.init();
+	// await Leaderboards.init();
 	if (Util.isWeeb) document.title = 'Marble Blast Weeb'; // <- humor
 
 	// If we're on a touch device, remind the user that the site can be installed as a PWA
