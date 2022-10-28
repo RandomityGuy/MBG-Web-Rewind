@@ -112,7 +112,7 @@ export abstract class ResourceManager {
 		if (this.loadResourcePromises.get(path)) return this.loadResourcePromises.get(path);
 
 		let tries = 0;
-		let promise = new Promise<Blob>((resolve) => {
+		let promise = new Promise<Blob>((resolve, reject) => {
 			const attempt = async () => {
 				try {
 					let response = await fetch(path);
