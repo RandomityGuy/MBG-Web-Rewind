@@ -127,6 +127,8 @@ export class Replay {
 	currentJumpSoundTime = 0;
 	currentBounceTime = 0;
 
+	playbackCamera = false;
+
 	constructor(level?: Level) {
 		if (level) {
 			this.level = level;
@@ -376,8 +378,10 @@ export class Replay {
 		this.level.marble.body.orientation.copy(this.marbleOrientations[i]);
 		this.level.marble.body.linearVelocity.copy(this.marbleLinearVelocities[i]);
 		this.level.marble.body.angularVelocity.copy(this.marbleAngularVelocities[i]);
-		// this.level.yaw = this.cameraOrientations[i].yaw;
-		// this.level.pitch = this.cameraOrientations[i].pitch;
+		if (this.playbackCamera) {
+			this.level.yaw = this.cameraOrientations[i].yaw;
+			this.level.pitch = this.cameraOrientations[i].pitch;
+		}
 
 		if (this.currentAttemptTimes !== null) {
 			this.level.timeState.currentAttemptTime = this.currentAttemptTimes[i];

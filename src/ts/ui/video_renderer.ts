@@ -237,6 +237,7 @@ export abstract class VideoRenderer {
 			level.replay = this.replay;
 			this.replay.level = level;
 			this.replay.mode = 'playback';
+			this.replay.playbackCamera = true;
 
 			await level.start();
 
