@@ -1217,6 +1217,17 @@ export class Level extends Scheduler {
 					AudioManager.play('alarm_timeout.wav');
 				}
 			}
+
+			// Record or playback the replay
+			if (!playReplay) {
+				this.replay.record();
+			} else {
+				this.replay.playBack();
+				if (this.replay.isPlaybackComplete()) {
+					this.stopAndExit();
+					return;
+				}
+			}
 		}
 
 		if (!this.rewinding && !playReplay && this.rewind.frameskipFramecounter == 0) {
