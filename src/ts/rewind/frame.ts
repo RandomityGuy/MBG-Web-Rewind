@@ -89,6 +89,23 @@ export class Frame
 		retf.elapsedTime = this.elapsedTime;
 		retf.physicsTime = this.physicsTime;
 		retf.lastContactNormal = this.lastContactNormal;
+
+		retf.blast = this.blast;
+
+		retf.currentCheckpoint = this.currentCheckpoint;
+		retf.currentCheckpointTrigger = this.currentCheckpointTrigger;
+		retf.checkpointCollectedGems = new Set<Gem>(this.checkpointCollectedGems);
+		retf.checkpointHeldPowerUp = this.checkpointHeldPowerUp;
+		retf.checkpointUp = this.checkpointUp?.clone();
+		retf.checkpointBlast = this.checkpointBlast;
+		retf.respawnTimes = this.respawnTimes;
+
+		retf.randompupTimes = [...this.randompupTimes];
+
+		retf.teleportEnableTime = this.teleportEnableTime;
+		retf.teleportDisableTime = this.teleportDisableTime;
+
+		retf.teleportTimes = [...this.teleportTimes];
 		return retf;
 
 	}

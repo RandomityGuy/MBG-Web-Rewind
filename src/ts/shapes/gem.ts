@@ -29,10 +29,12 @@ export class Gem extends Shape {
 		if (hide) {
 			this.pickedUp = true;
 			this.setOpacity(0);
+			this.setCollisionEnabled(false);
 		}
 		else {
 			this.pickedUp = false;
 			this.setOpacity(1);
+			this.setCollisionEnabled(true);
 		}
 	}
 
