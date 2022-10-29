@@ -1,5 +1,5 @@
-# Marble Blast Gold - Web Port - Rewind Edition
-This implements rewinding capabilities to the MBG Web Port located [here](https://github.com/Vanilagy/MarbleBlast)  
+# Marble Blast - Web Port - Rewind Edition
+This implements rewinding capabilities to the MB Web Port located [here](https://github.com/Vanilagy/MarbleBlast)  
 Current release is hosted [here](http://mbgwrewind.pythonanywhere.com/)
 
 ## Currently Implemented Features
@@ -11,7 +11,7 @@ Current release is hosted [here](http://mbgwrewind.pythonanywhere.com/)
 Start a level, press and hold 'Left Shift' to rewind
 
 ## Building
-To compile, run `npm install`, then `npm run compile`. For fast building after initial build, do `npm run watch-fast`.
+To compile, run `npm install --legacy-peer-deps`, then `npm run compile`. For fast building after initial build, do `npm run watch-fast`.
 
 ## Running the server
 Python 3 is required to run the server.  
