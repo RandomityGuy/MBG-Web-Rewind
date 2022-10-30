@@ -1,4 +1,4 @@
-import { AudioManager, AudioSource } from "../audio";
+import { AudioManager, AudioSource, mainAudioManager } from "../audio";
 import { currentMousePosition } from "../input";
 import { ResourceManager } from "../resources";
 import { StorageManager } from "../storage";
@@ -440,7 +440,7 @@ export class MbgOptionsScreen extends OptionsScreen {
 	setupTab(element: HTMLImageElement, which: 'graphics' | 'audio' | 'controls' | 'rewind') {
 		element.addEventListener('mousedown', (e) => {
 			if (e.button !== 0) return;
-			AudioManager.play('buttonpress.wav');
+			mainAudioManager.play('buttonpress.wav');
 		});
 		element.addEventListener('click', (e) => e.button === 0 && this.selectTab(which));
 	}
@@ -523,7 +523,7 @@ export class MbgOptionsScreen extends OptionsScreen {
 
 			this.musicVolumeKnob.style.left = Math.floor(this.musicVolumeKnobLeft + completion * this.trackLength) + 'px';
 			StorageManager.data.settings.musicVolume = completion;
-			AudioManager.updateVolumes();
+			mainAudioManager.updateVolumes();
 		}
 
 		if (this.draggingSoundVolume) {
@@ -532,10 +532,10 @@ export class MbgOptionsScreen extends OptionsScreen {
 
 			this.soundVolumeKnob.style.left = Math.floor(this.soundVolumeKnobLeft + completion * this.trackLength) + 'px';
 			StorageManager.data.settings.soundVolume = completion;
-			AudioManager.updateVolumes();
+			mainAudioManager.updateVolumes();
 
 			if (!this.soundTestingSound) {
-				this.soundTestingSound = AudioManager.createAudioSource('testing.wav');
+				this.soundTestingSound = mainAudioManager.createAudioSource('testing.wav');
 				this.soundTestingSound.setLoop(true);
 				this.soundTestingSound.play();
 			}

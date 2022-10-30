@@ -31,6 +31,6 @@ export class AntiGravity extends PowerUp {
 
 		this.level.setUp(direction);
 		if (!this.level.rewinding)
-			AudioManager.play(this.sounds[0]);
+			this.level.audio.play(this.sounds[0]);
 	}
 }

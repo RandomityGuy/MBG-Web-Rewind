@@ -32,7 +32,7 @@ import { InBoundsTrigger } from "./triggers/in_bounds_trigger";
 import { HelpTrigger } from "./triggers/help_trigger";
 import { OutOfBoundsTrigger } from "./triggers/out_of_bounds_trigger";
 import { ResourceManager } from "./resources";
-import { AudioManager, AudioSource } from "./audio";
+import { AudioManager, AudioSource, mainAudioManager } from "./audio";
 import { ParticleManager, ParticleEmitterOptions, particleNodeEmittersEmitterOptions, ParticleEmitter } from "./particles";
 import { StorageManager } from "./storage";
 import { Replay } from "./replay";
@@ -85,10 +85,10 @@ const SHAPE_OVERLAY_OFFSETS = {
 	"shapes/items/superbounce.dts": -55,
 	"shapes/items/superspeed.dts": -53,
 	"shapes/items/shockabsorber.dts": -53,
-	"shapes/items/megamarble.dts": -70,
+	"shapes/items/megamarble.dts": -70
 };
 const SHAPE_OVERLAY_SCALES = {
-	"shapes/items/megamarble.dts": 60,
+	"shapes/items/megamarble.dts": 60
 };
 /** The time in milliseconds when the marble is released from the start pad. */
 export const GO_TIME = 3500;
@@ -181,6 +181,8 @@ export class Level extends Scheduler {
 	lastFrameTime: number = null;
 	/** Offline levels are meant for video rendering, not real-time play. */
 	offline = false;
+	/** How long the offline level will be played for. */
+	offlineDuration: number;
 	started = false;
 	paused = true;
 	/** If the level is stopped, it shouldn't be used anymore. */
@@ -234,6 +236,7 @@ export class Level extends Scheduler {
 	checkpointBlast: number = null;
 	respawnTimes = 0;
 
+	audio: AudioManager;
 	timeTravelSound: AudioSource;
 	/** The alarm that plays in MBP when the player is about to pass the "par time". */
 	alarmSound: AudioSource;
@@ -254,11 +257,14 @@ export class Level extends Scheduler {
 	// Replay controls
 	isReplayPaused = false;
 
-	constructor(mission: Mission, offline = false) {
+	constructor(mission: Mission, offline?: { duration: number }) {
 		super();
+
 		this.mission = mission;
 		this.loadingState = { loaded: 0, total: 0 };
-		this.offline = offline;
+
+		this.offline = !!offline;
+		this.offlineDuration = offline?.duration;
 	}
 
 	/** Loads all necessary resources and builds the mission. */
@@ -285,6 +291,17 @@ export class Level extends Scheduler {
 		// Apply overridden gravity
 		if (this.mission.misFile.marbleAttributes["gravity"] !== undefined) {
 			this.defaultGravity = MisParser.parseNumber(this.mission.misFile.marbleAttributes["gravity"]);
+		}
+
+		if (!this.offline) {
+			this.audio = mainAudioManager;
+		} else {
+			this.audio = new AudioManager();
+			this.audio.init({ duration: this.offlineDuration });
+			this.audio.setAssetPath(mainAudioManager.assetPath);
+			this.audio.soundGain.gain.value = mainAudioManager.soundGain.gain.value;
+			this.audio.musicGain.gain.value = mainAudioManager.musicGain.gain.value;
+			this.audio.currentTimeOverride = 0;
 		}
 
 		this.world = new World();
@@ -318,7 +335,8 @@ export class Level extends Scheduler {
 		this.restart(true);
 		for (let interior of this.interiors) await interior.onLevelStart();
 		for (let shape of this.shapes) await shape.onLevelStart();
-		AudioManager.normalizePositionalAudioVolume();
+		this.audio.normalizePositionalAudioVolume();
+		this.music.play();
 
 		resize(false); // To update renderer
 		this.updateCamera(this.timeState); // Ensure that the camera is positioned correctly before the first tick for correct positional audio playback
@@ -326,7 +344,6 @@ export class Level extends Scheduler {
 		if (!this.offline) {
 			this.tryRender();
 			this.tickInterval = setInterval(this.tick.bind(this)) as unknown as number;
-			this.music.play();
 			this.lastPhysicsTick = performance.now(); // First render usually takes quite long (shader compile etc), so reset the last physics tick back to now
 			mainCanvas.classList.remove('hidden');
 		} else {
@@ -546,17 +563,17 @@ export class Level extends Scheduler {
 		if (isFinite(this.mission.qualifyTime) && state.modification === 'platinum') toLoad.push("alarm.wav", "alarm_timeout.wav", "infotutorial.wav");
 
 		try {
-			await AudioManager.loadBuffers(toLoad);
+			await this.audio.loadBuffers(toLoad);
 		} catch (e) {
 			// Something died, maybe it was the music, try replacing it with a song we know exists
 			let newMusic = Util.randomFromArray(MBP_SONGS);
 			this.originalMusicName = newMusic;
 			toLoad[toLoad.indexOf(musicFileName)] = 'music/' + newMusic;
 			musicFileName = 'music/' + newMusic;
-			await AudioManager.loadBuffers(toLoad);
+			await this.audio.loadBuffers(toLoad);
 		}
 
-		this.music = AudioManager.createAudioSource(musicFileName, AudioManager.musicGain);
+		this.music = this.audio.createAudioSource(musicFileName, this.audio.musicGain);
 		this.music.setLoop(true);
 		await this.music.promise;
 	}
@@ -852,20 +869,20 @@ export class Level extends Scheduler {
 
 		// Queue the ready-set-go events
 
-		AudioManager.play('spawn.wav');
+		this.audio.play('spawn.wav');
 
 		this.clearSchedule();
 		this.schedule(500, () => {
 			hud.setCenterText('ready');
-			AudioManager.play('ready.wav');
+			this.audio.play('ready.wav');
 		});
 		this.schedule(2000, () => {
 			hud.setCenterText('set');
-			AudioManager.play('set.wav');
+			this.audio.play('set.wav');
 		});
 		this.schedule(GO_TIME, () => {
 			hud.setCenterText('go');
-			AudioManager.play('go.wav');
+			this.audio.play('go.wav');
 		});
 		this.schedule(5500, () => {
 			if (!this.outOfBounds) hud.setCenterText('none');
@@ -969,7 +986,7 @@ export class Level extends Scheduler {
 				overlayShape.group.position.z = -35 / SCALING_RATIO;
 			} else {
 				overlayShape.group.scale.setScalar((SHAPE_OVERLAY_SCALES[overlayShape.dtsPath as keyof typeof SHAPE_OVERLAY_SCALES] ?? 40) / SCALING_RATIO);
-				overlayShape.group.position.y = window.innerWidth - 55 / SCALING_RATIO;
+				overlayShape.group.position.y = mainCanvas.width - 55 / SCALING_RATIO;
 				overlayShape.group.position.z = SHAPE_OVERLAY_OFFSETS[overlayShape.dtsPath as keyof typeof SHAPE_OVERLAY_OFFSETS] / SCALING_RATIO;
 			}
 
@@ -1136,7 +1153,7 @@ export class Level extends Scheduler {
 					this.currentTimeTravelBonus -= 1000 / PHYSICS_TICK_RATE;
 
 					if (!this.timeTravelSound) {
-						this.timeTravelSound = AudioManager.createAudioSource('timetravelactive.wav');
+						this.timeTravelSound = this.audio.createAudioSource('timetravelactive.wav');
 						this.timeTravelSound.setLoop(true);
 						this.timeTravelSound.play();
 					}
@@ -1162,6 +1179,8 @@ export class Level extends Scheduler {
 			elapsed -= 1000 / PHYSICS_TICK_RATE;
 
 			this.tickSchedule(this.timeState.currentAttemptTime);
+
+			if (this.offline) this.audio.currentTimeOverride = this.timeState.currentAttemptTime/1000;
 
 			if (this.mission.hasBlast && this.blastAmount < 1) this.blastAmount = Util.clamp(this.blastAmount + 1000 / BLAST_CHARGE_TIME / PHYSICS_TICK_RATE, 0, 1);
 
@@ -1205,7 +1224,7 @@ export class Level extends Scheduler {
 
 				if (prevGameplayClock <= alarmStart && this.timeState.gameplayClock >= alarmStart) {
 					// Start the alarm
-					this.alarmSound = AudioManager.createAudioSource('alarm.wav');
+					this.alarmSound = this.audio.createAudioSource('alarm.wav');
 					this.alarmSound.setLoop(true);
 					this.alarmSound.play();
 					state.menu.hud.displayHelp(`You have ${(this.mission.qualifyTime - alarmStart) / 1000} seconds remaining.`, true);
@@ -1214,7 +1233,7 @@ export class Level extends Scheduler {
 					this.alarmSound?.stop();
 					this.alarmSound = null;
 					state.menu.hud.displayHelp("The clock has passed the Par Time.", true);
-					AudioManager.play('alarm_timeout.wav');
+					this.audio.play('alarm_timeout.wav');
 				}
 			}
 
@@ -1251,7 +1270,7 @@ export class Level extends Scheduler {
 
 		this.updateGameState();
 
-		AudioManager.updatePositionalAudio(this.timeState, this.camera.position, this.yaw);
+		this.audio.updatePositionalAudio(this.timeState, this.camera.position, this.yaw);
 		this.pitch = Math.max(-Math.PI/2 + Math.PI/4, Math.min(Math.PI/2 - 0.0001, this.pitch)); // The player can't look straight up
 		if (tickDone) this.marble.calculatePredictiveTransforms();
 
@@ -1392,7 +1411,7 @@ export class Level extends Scheduler {
 			overlayShape.setOpacity(Number(overlayShape.dtsPath === powerUp.dtsPath));
 		}
 
-		if (playPickUpSound && !this.rewinding) AudioManager.play(powerUp.sounds[0]);
+		if (playPickUpSound && !this.rewinding) this.audio.play(powerUp.sounds[0]);
 
 		return true;
 	}
@@ -1434,7 +1453,7 @@ export class Level extends Scheduler {
 		if (this.gemCount === this.totalGems) {
 			string = `You have all the ${gemWord}s, head for the finish!`;
 			if (!this.rewinding)
-				AudioManager.play('gotallgems.wav');
+				this.audio.play('gotallgems.wav');
 
 			// Some levels with this package end immediately upon collection of all gems
 			if (this.mission.misFile.activatedPackages.includes('endWithTheGems')) {
@@ -1450,7 +1469,7 @@ export class Level extends Scheduler {
 				string += `${remaining} ${gemWord}s to go!`;
 			}
 			if (!this.rewinding)
-				AudioManager.play('gotgem.wav');
+				this.audio.play('gotgem.wav');
 		}
 
 		state.menu.hud.displayAlert(string);
@@ -1476,7 +1495,7 @@ export class Level extends Scheduler {
 		this.outOfBoundsTime = Util.jsonClone(this.timeState);
 		this.oobCameraPosition = this.camera.position.clone();
 		state.menu.hud.setCenterText('outofbounds');
-		AudioManager.play('whoosh.wav');
+		this.audio.play('whoosh.wav');
 
 		if (this.replay.mode !== 'playback') this.schedule(this.timeState.currentAttemptTime + 2000, () => this.restart(false), 'oobRestart');
 	}
@@ -1504,7 +1523,7 @@ export class Level extends Scheduler {
 		this.checkpointHeldPowerUp = this.heldPowerUp;
 
 		state.menu.hud.displayAlert("Checkpoint reached!");
-		AudioManager.play('checkpoint.wav');
+		this.audio.play('checkpoint.wav');
 	}
 
 	/** Resets to the last stored checkpoint state. */
@@ -1575,7 +1594,7 @@ export class Level extends Scheduler {
 		// Wait a bit to select the powerup to prevent immediately using it incase the user skipped the OOB screen by clicking
 		if (this.checkpointHeldPowerUp) this.schedule(this.timeState.currentAttemptTime + 500, () => this.pickUpPowerUp(this.checkpointHeldPowerUp, false));
 
-		AudioManager.play('spawn.wav');
+		this.audio.play('spawn.wav');
 		this.replay.recordCheckpointRespawn();
 	}
 
@@ -1585,7 +1604,7 @@ export class Level extends Scheduler {
 		this.replay.recordTouchFinish();
 
 		if (this.gemCount < this.totalGems) {
-			AudioManager.play('missinggems.wav');
+			this.audio.play('missinggems.wav');
 			state.menu.hud.displayAlert((state.modification === 'gold')? "You can't finish without all the gems!!" : "You may not finish without all the diamonds!");
 		} else {
 			if (completionOfImpact === undefined) completionOfImpact = 1;
@@ -1672,7 +1691,7 @@ export class Level extends Scheduler {
 		this.marble.shockAbsorberSound?.stop();
 		this.marble.superBounceSound?.stop();
 
-		AudioManager.stopAllAudio();
+		this.audio.stopAllAudio();
 	}
 
 	/** Stops and destroys the current level and returns back to the menu. */

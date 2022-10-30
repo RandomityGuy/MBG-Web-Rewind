@@ -9,7 +9,7 @@ export class Blast extends PowerUp {
 
 	pickUp() {
 		if (!this.level.rewinding)
-			AudioManager.play(this.sounds[0]);
+			this.level.audio.play(this.sounds[0]);
 		return true;
 	}
 
