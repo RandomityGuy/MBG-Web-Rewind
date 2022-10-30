@@ -465,10 +465,10 @@ export abstract class LevelSelect {
 		});
 
 		icon.addEventListener('mouseenter', () => {
-			AudioManager.play('buttonover.wav');
+			mainAudioManager.play('buttonover.wav');
 		});
 		icon.addEventListener('mousedown', (e) => {
-			if (e.button === 0) AudioManager.play('buttonpress.wav');
+			if (e.button === 0) mainAudioManager.play('buttonpress.wav');
 		});
 
 		return icon;
