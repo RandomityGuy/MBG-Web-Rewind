@@ -1,4 +1,4 @@
-import { AudioManager, mainAudioManager } from "../audio";
+import { mainAudioManager } from "../audio";
 import { isPressedByGamepad, getPressedFlag, resetPressedFlag } from "../input";
 import { Leaderboards } from "../leaderboards";
 import { GO_TIME } from "../level";
