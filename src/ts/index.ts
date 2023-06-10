@@ -188,3 +188,10 @@ window.addEventListener('beforeinstallprompt', (e: Event) => {
 	e.preventDefault();
 	installPromptEvent = e; // Save the prompt for later
 });
+
+window.addEventListener('message', (e) => {
+	if (e.origin === 'http://mbgwrewind.pythonanywhere.com') {
+		let jdata = JSON.parse(e.data);
+		StorageManager.loadDatabases(jdata);
+	}
+});

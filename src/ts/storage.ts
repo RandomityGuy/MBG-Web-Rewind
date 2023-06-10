@@ -257,6 +257,54 @@ export abstract class StorageManager {
 		Util.getDefaultSecondsToTimeStringDecimalDigits = () => this.data.settings.showThousandths? 3 : 2;
 	}
 
+	static async dumpAllDatabases() {
+		let keyvalue = await this.dumpDatabase('keyvalue');
+		let replays = await this.dumpDatabase('replays');
+		return {
+			keyvalue: keyvalue,
+			replays: replays
+		};
+	}
+
+	static async dumpDatabase(dbName: string) {
+		let tsection = (await this.idbDatabase).transaction(dbName, 'readonly');
+		let allreqkeys = tsection.objectStore(dbName).getAllKeys();
+		let o: any = {};
+		let proms: Promise<null>[] = [];
+		let mainp = new Promise((resolv, rejec) => {
+			allreqkeys.onsuccess = (e) => {
+				proms.push(new Promise((res, rej) => {
+					allreqkeys.result.forEach(x => {
+						let allreq = tsection.objectStore(dbName).getAll(x);
+						allreq.onsuccess = (e) => {
+							allreq.result.forEach(y => {
+								o[x.toString()] = y;
+							});
+							res(null);
+						};
+					});
+				}));
+				resolv(null);
+			};
+		});
+		await mainp;
+		await Promise.all(proms);
+		return o;
+	}
+
+	static async loadDatabases(obj: any) {
+		await this.loadDatabase('keyvalue', obj['keyvalue']);
+		await this.loadDatabase('replays', obj['replays']);
+	}
+
+	static async loadDatabase(dbName: string, obj: any) {
+		let tsection = (await this.idbDatabase).transaction(dbName, 'readwrite');
+		let ostore = tsection.objectStore(dbName);
+		for (let key of Object.keys(obj)) {
+			await ostore.put(obj[key], key);
+		}
+	}
+
 	/** Migrates from localStorage to IndexedDB. */
 	static async migrate() {
 		let stored = JSON.parse(localStorage.getItem('mb-storage')) as StorageData;
